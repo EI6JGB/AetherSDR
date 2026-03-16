@@ -309,10 +309,10 @@ QString RigctlProtocol::cmdDumpState()
     //             CWR=0x80, AMS=0x200, PKTLSB=0x400, PKTUSB=0x800
     // Combined: 0x4|0x8|0x2|0x80|0x1|0x20|0x10|0x200|0x800|0x400 = 0xEBF
 
-    // Match exact output of `rigctld --model=2` (Hamlib 4.6.5).
-    // WSJT-X parses this line-by-line with strict field expectations.
+    // Protocol v1 dump_state matching Hamlib 4.6.5 netrigctl_open().
+    // Every field must be present or WSJT-X times out waiting for data.
     QString dump;
-    dump += "1\n";                       // protocol version (must be 1, not 0)
+    dump += "1\n";                       // protocol version
     dump += "2\n";                       // rig model = NET rigctl
     dump += "0\n";                       // ITU region
     // RX range
@@ -328,29 +328,44 @@ QString RigctlProtocol::cmdDumpState()
     dump += "0xebf 1000\n";
     dump += "0 0\n";                     // end tuning steps
     // Filters
-    dump += "0x2 500\n";                 // CW 500Hz
-    dump += "0x2 200\n";                 // CW 200Hz
-    dump += "0xc 2400\n";               // SSB 2400Hz
-    dump += "0xc 1800\n";               // SSB 1800Hz
-    dump += "0x1 6000\n";               // AM 6000Hz
-    dump += "0x20 12000\n";             // FM 12000Hz
+    dump += "0x2 500\n";
+    dump += "0x2 200\n";
+    dump += "0xc 2400\n";
+    dump += "0xc 1800\n";
+    dump += "0x1 6000\n";
+    dump += "0x20 12000\n";
     dump += "0 0\n";                     // end filters
-    // Max RIT/XIT
-    dump += "9999\n";                    // max RIT
-    dump += "9999\n";                    // max XIT
-    dump += "0\n";                       // max IF shift
-    dump += "0\n";                       // announces
-    // Preamp/attenuator (empty lines = none)
-    dump += "\n";                        // preamp list (empty)
-    dump += "\n";                        // attenuator list (empty)
-    // has get/set func/level/parm (hex bitmasks)
-    dump += "0x0\n";                     // has_get_func
-    dump += "0x0\n";                     // has_set_func
-    dump += "0x0\n";                     // has_get_level
-    dump += "0x0\n";                     // has_set_level
-    dump += "0x0\n";                     // has_get_parm
-    dump += "0x0\n";                     // has_set_parm
-    // No "done" — protocol v1 ends after the parm fields
+    // Max RIT/XIT/IF shift/announces
+    dump += "9999\n";
+    dump += "9999\n";
+    dump += "0\n";
+    dump += "0\n";
+    // Preamp/attenuator (empty = none)
+    dump += "\n";
+    dump += "\n";
+    // has get/set func/level/parm
+    dump += "0x0\n";
+    dump += "0x0\n";
+    dump += "0x0\n";
+    dump += "0x0\n";
+    dump += "0x0\n";
+    dump += "0x0\n";
+    // Protocol v1 additional fields (required by netrigctl_open)
+    dump += "0\n";                       // vfo_ops
+    dump += "0\n";                       // ptt_type (RIG_PTT_NONE)
+    dump += "0\n";                       // targetable_vfo
+    dump += "1\n";                       // has_set_vfo
+    dump += "1\n";                       // has_get_vfo
+    dump += "1\n";                       // has_set_freq
+    dump += "1\n";                       // has_get_freq
+    dump += "0\n";                       // has_set_conf
+    dump += "0\n";                       // has_get_conf
+    dump += "0\n";                       // has_get_ant (no antenna control via rigctld)
+    dump += "0\n";                       // has_set_ant
+    dump += "0\n";                       // has_power2mW
+    dump += "0\n";                       // has_mW2power
+    dump += "0\n";                       // timeout (ms, 0 = default)
+    dump += "done\n";                    // terminates the v1 extended fields
 
     return dump;
 }
