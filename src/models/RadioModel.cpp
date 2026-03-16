@@ -134,6 +134,59 @@ void RadioModel::setPanRfGain(int gain)
         QString("display pan set %1 rfgain=%2").arg(m_panId).arg(gain));
 }
 
+// ── Display controls — FFT ─────────────────────────────────────────────────
+
+void RadioModel::setPanAverage(int frames)
+{
+    if (m_panId.isEmpty()) return;
+    m_connection.sendCommand(
+        QString("display pan set %1 average=%2").arg(m_panId).arg(frames));
+}
+
+void RadioModel::setPanFps(int fps)
+{
+    if (m_panId.isEmpty()) return;
+    m_connection.sendCommand(
+        QString("display pan set %1 fps=%2").arg(m_panId).arg(fps));
+}
+
+void RadioModel::setPanWeightedAverage(bool on)
+{
+    if (m_panId.isEmpty()) return;
+    m_connection.sendCommand(
+        QString("display pan set %1 weighted_average=%2").arg(m_panId).arg(on ? 1 : 0));
+}
+
+// ── Display controls — Waterfall ──────────────────────────────────────────
+
+void RadioModel::setWaterfallColorGain(int gain)
+{
+    if (m_waterfallId.isEmpty()) return;
+    m_connection.sendCommand(
+        QString("display panafall set %1 color_gain=%2").arg(m_waterfallId).arg(gain));
+}
+
+void RadioModel::setWaterfallBlackLevel(int level)
+{
+    if (m_waterfallId.isEmpty()) return;
+    m_connection.sendCommand(
+        QString("display panafall set %1 black_level=%2").arg(m_waterfallId).arg(level));
+}
+
+void RadioModel::setWaterfallAutoBlack(bool on)
+{
+    if (m_waterfallId.isEmpty()) return;
+    m_connection.sendCommand(
+        QString("display panafall set %1 auto_black=%2").arg(m_waterfallId).arg(on ? 1 : 0));
+}
+
+void RadioModel::setWaterfallLineDuration(int ms)
+{
+    if (m_waterfallId.isEmpty()) return;
+    m_connection.sendCommand(
+        QString("display panafall set %1 line_duration=%2").arg(m_waterfallId).arg(ms));
+}
+
 // ─── Connection slots ─────────────────────────────────────────────────────────
 
 void RadioModel::onConnected()

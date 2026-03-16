@@ -147,6 +147,17 @@ public:
     void setPanWnbLevel(int level);
     void setPanRfGain(int gain);
 
+    // Display controls — FFT (display pan set)
+    void setPanAverage(int frames);
+    void setPanFps(int fps);
+    void setPanWeightedAverage(bool on);
+
+    // Display controls — Waterfall (display panafall set)
+    void setWaterfallColorGain(int gain);
+    void setWaterfallBlackLevel(int level);
+    void setWaterfallAutoBlack(bool on);
+    void setWaterfallLineDuration(int ms);
+
 signals:
     void infoChanged();
     void connectionStateChanged(bool connected);
