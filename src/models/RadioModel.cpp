@@ -220,6 +220,25 @@ void RadioModel::onConnected()
                                     qWarning() << "RadioModel: stream create remote_audio_rx failed, code"
                                                << Qt::hex << code << "body:" << body;
                             });
+
+                        // Request DAX TX audio stream (PC mic → radio)
+                        m_connection.sendCommand(
+                            "stream create type=dax_tx",
+                            [this](int code, const QString& body) {
+                                if (code == 0) {
+                                    quint32 id = body.trimmed().toUInt(nullptr, 16);
+                                    qDebug() << "RadioModel: dax_tx stream created, id:"
+                                             << Qt::hex << id;
+                                    // Enable DAX and set mic source to PC so radio
+                                    // uses our DAX TX audio instead of physical mic
+                                    m_connection.sendCommand("transmit set dax=1");
+                                    m_connection.sendCommand("transmit set mic_selection=PC");
+                                    emit txAudioStreamReady(id);
+                                } else {
+                                    qWarning() << "RadioModel: stream create dax_tx failed, code"
+                                               << Qt::hex << code << "body:" << body;
+                                }
+                            });
                     });
             });
     }); // client gui

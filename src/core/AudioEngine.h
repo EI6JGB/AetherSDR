@@ -19,8 +19,10 @@ namespace AetherSDR {
 //   connect that signal to feedAudioData() then call startRxStream() to open
 //   the QAudioSink.
 //
-// TX path (stub — not yet implemented):
-//   Captures mic audio and sends it to the radio via UDP.
+// TX path:
+//   Captures mic/input audio via QAudioSource, frames it as VITA-49
+//   ExtDataWithStream packets (PCC 0x03E3, float32 stereo big-endian),
+//   and sends to the radio via UDP.
 
 class AudioEngine : public QObject {
     Q_OBJECT
@@ -35,9 +37,12 @@ public:
     bool startRxStream();
     void stopRxStream();
 
-    // TX (microphone) – send raw PCM to radio's audio stream endpoint
+    // TX (microphone) – capture audio and send VITA-49 packets to radio
     bool startTxStream(const QHostAddress& radioAddress, quint16 radioPort);
     void stopTxStream();
+
+    // Set the TX stream ID (from radio's response to "stream create type=remote_audio_tx")
+    void setTxStreamId(quint32 id) { m_txStreamId = id; }
 
     float rxVolume() const  { return m_rxVolume; }
     void  setRxVolume(float v);
@@ -60,6 +65,7 @@ private slots:
 private:
     QAudioFormat makeFormat() const;
     float computeRMS(const QByteArray& pcm) const;
+    QByteArray buildVitaTxPacket(const float* samples, int numStereoSamples);
 
     // RX
     QAudioSink*   m_audioSink{nullptr};
@@ -71,9 +77,21 @@ private:
     QIODevice*    m_micDevice{nullptr};
     QHostAddress  m_txAddress;
     quint16       m_txPort{0};
+    quint32       m_txStreamId{0};
+    quint8        m_txPacketCount{0};    // 4-bit, mod 16
+    QByteArray    m_txAccumulator;       // accumulate PCM until 128 stereo pairs
 
     float m_rxVolume{1.0f};
     bool  m_muted{false};
+
+    // VITA-49 TX constants
+    static constexpr int    TX_SAMPLES_PER_PACKET = 128;  // stereo pairs
+    static constexpr int    TX_PCM_BYTES_PER_PACKET = TX_SAMPLES_PER_PACKET * 2 * 2; // 128 pairs × 2ch × 2bytes
+    static constexpr int    VITA_HEADER_WORDS = 7;
+    static constexpr int    VITA_HEADER_BYTES = VITA_HEADER_WORDS * 4;  // 28 bytes
+    static constexpr quint32 FLEX_OUI = 0x001C2D;
+    static constexpr quint16 FLEX_INFO_CLASS = 0x534C;
+    static constexpr quint16 PCC_IF_NARROW = 0x03E3;
 };
 
 } // namespace AetherSDR

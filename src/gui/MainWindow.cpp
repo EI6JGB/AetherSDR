@@ -104,6 +104,15 @@ MainWindow::MainWindow(QWidget* parent)
     connect(&m_radioModel, &RadioModel::sliceRemoved,
             this, &MainWindow::onSliceRemoved);
 
+    // ── TX audio stream: start mic capture when radio assigns stream ID ──
+    connect(&m_radioModel, &RadioModel::txAudioStreamReady,
+            this, [this](quint32 streamId) {
+        m_audio.setTxStreamId(streamId);
+        // Send TX audio to the radio's VITA-49 port (same as RX: 4991)
+        m_audio.startTxStream(
+            m_radioModel.connection()->radioAddress(), 4991);
+    });
+
     // ── Panadapter stream → spectrum widget ───────────────────────────────
     connect(m_radioModel.panStream(), &PanadapterStream::spectrumReady,
             spectrum(), &SpectrumWidget::updateSpectrum);
@@ -506,6 +515,7 @@ void MainWindow::onConnectionStateChanged(bool connected)
         m_radioInfoLabel->setText(info);
         m_connPanel->setStatusText("Connected");
         m_audio.startRxStream();
+        // TX audio stream will start when the radio assigns a stream ID
         // Auto-collapse the connection panel unless the user manually expanded it
         if (!m_userExpandedPanel)
             m_connPanel->setCollapsed(true);
@@ -514,6 +524,7 @@ void MainWindow::onConnectionStateChanged(bool connected)
         m_radioInfoLabel->setText("");
         m_connPanel->setStatusText("Not connected");
         m_audio.stopRxStream();
+        m_audio.stopTxStream();
     }
 }
 

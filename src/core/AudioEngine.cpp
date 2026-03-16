@@ -2,8 +2,10 @@
 
 #include <QMediaDevices>
 #include <QAudioDevice>
+#include <QtEndian>
 #include <QDebug>
 #include <cmath>
+#include <cstring>
 
 namespace AetherSDR {
 
@@ -105,11 +107,20 @@ float AudioEngine::computeRMS(const QByteArray& pcm) const
 
 bool AudioEngine::startTxStream(const QHostAddress& radioAddress, quint16 radioPort)
 {
+    if (m_audioSource) return true;  // already running
+
     m_txAddress = radioAddress;
     m_txPort    = radioPort;
+    m_txPacketCount = 0;
+    m_txAccumulator.clear();
 
     const QAudioFormat fmt = makeFormat();
     const QAudioDevice defaultInput = QMediaDevices::defaultAudioInput();
+
+    if (defaultInput.isNull()) {
+        qWarning() << "AudioEngine: no audio input device available";
+        return false;
+    }
 
     m_audioSource = new QAudioSource(defaultInput, fmt, this);
     m_micDevice   = m_audioSource->start();
@@ -124,7 +135,8 @@ bool AudioEngine::startTxStream(const QHostAddress& radioAddress, quint16 radioP
     connect(m_micDevice, &QIODevice::readyRead,
             this, &AudioEngine::onTxAudioReady);
 
-    qDebug() << "AudioEngine: TX stream started ->" << radioAddress << ":" << radioPort;
+    qDebug() << "AudioEngine: TX stream started ->" << radioAddress.toString()
+             << ":" << radioPort << "streamId:" << Qt::hex << m_txStreamId;
     return true;
 }
 
@@ -137,11 +149,92 @@ void AudioEngine::stopTxStream()
         m_micDevice   = nullptr;
     }
     m_txSocket.close();
+    m_txAccumulator.clear();
 }
 
 void AudioEngine::onTxAudioReady()
 {
-    // TX stub — full VITA-49 framing needed before this is usable.
+    if (!m_micDevice || m_txStreamId == 0) return;
+
+    // Read all available PCM data (int16 stereo, 24 kHz)
+    const QByteArray data = m_micDevice->readAll();
+    if (data.isEmpty()) return;
+
+    m_txAccumulator.append(data);
+
+    // Process complete packets (128 stereo pairs = 512 bytes of int16 PCM)
+    while (m_txAccumulator.size() >= TX_PCM_BYTES_PER_PACKET) {
+        const int16_t* pcm = reinterpret_cast<const int16_t*>(m_txAccumulator.constData());
+
+        // Convert int16 stereo → float32 stereo (128 pairs = 256 floats)
+        float floatBuf[TX_SAMPLES_PER_PACKET * 2];
+        for (int i = 0; i < TX_SAMPLES_PER_PACKET * 2; ++i)
+            floatBuf[i] = pcm[i] / 32768.0f;
+
+        // Build and send VITA-49 packet
+        QByteArray packet = buildVitaTxPacket(floatBuf, TX_SAMPLES_PER_PACKET);
+        m_txSocket.writeDatagram(packet, m_txAddress, m_txPort);
+
+        // Advance accumulator
+        m_txAccumulator.remove(0, TX_PCM_BYTES_PER_PACKET);
+    }
+}
+
+QByteArray AudioEngine::buildVitaTxPacket(const float* samples, int numStereoSamples)
+{
+    const int payloadBytes = numStereoSamples * 2 * 4;  // stereo × sizeof(float)
+    const int packetWords = (payloadBytes / 4) + VITA_HEADER_WORDS;
+    const int packetBytes = packetWords * 4;
+
+    QByteArray packet(packetBytes, '\0');
+    quint32* words = reinterpret_cast<quint32*>(packet.data());
+
+    // ── Word 0: Header ────────────────────────────────────────────────────
+    // Bits 31-28: packet type = 1 (IFDataWithStream) — DAX TX format
+    // Bit  27:    C = 1 (class ID present)
+    // Bit  26:    T = 0 (no trailer)
+    // Bits 25-24: reserved = 0
+    // Bits 23-22: TSI = 2 (Other)
+    // Bits 21-20: TSF = 1 (SampleCount)
+    // Bits 19-16: packet count (4-bit)
+    // Bits 15-0:  packet size (in 32-bit words)
+    quint32 hdr = 0;
+    hdr |= (0x1u << 28);          // pkt_type = IFDataWithStream (DAX TX)
+    hdr |= (1u << 27);            // C = 1
+    // T = 0 (bit 26)
+    hdr |= (0x2u << 22);          // TSI = Other
+    hdr |= (0x1u << 20);          // TSF = SampleCount
+    hdr |= ((m_txPacketCount & 0xF) << 16);
+    hdr |= (packetWords & 0xFFFF);
+    words[0] = qToBigEndian(hdr);
+
+    // ── Word 1: Stream ID ─────────────────────────────────────────────────
+    words[1] = qToBigEndian(m_txStreamId);
+
+    // ── Word 2: Class ID OUI (24-bit, right-justified in 32-bit word) ────
+    words[2] = qToBigEndian(FLEX_OUI);
+
+    // ── Word 3: InformationClassCode (upper 16) | PacketClassCode (lower 16)
+    words[3] = qToBigEndian(
+        (static_cast<quint32>(FLEX_INFO_CLASS) << 16) | PCC_IF_NARROW);
+
+    // ── Words 4-6: Timestamps ─────────────────────────────────────────────
+    words[4] = 0;  // integer timestamp
+    words[5] = 0;  // fractional timestamp high
+    words[6] = 0;  // fractional timestamp low (sample count)
+
+    // ── Payload: float32 stereo, big-endian ───────────────────────────────
+    quint32* payload = words + VITA_HEADER_WORDS;
+    for (int i = 0; i < numStereoSamples * 2; ++i) {
+        quint32 raw;
+        std::memcpy(&raw, &samples[i], 4);
+        payload[i] = qToBigEndian(raw);
+    }
+
+    // Increment packet count (4-bit, mod 16)
+    m_txPacketCount = (m_txPacketCount + 1) & 0xF;
+
+    return packet;
 }
 
 } // namespace AetherSDR

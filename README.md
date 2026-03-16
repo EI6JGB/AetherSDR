@@ -13,7 +13,7 @@
 
 AetherSDR brings FlexRadio operation to Linux without Wine or virtual machines. Built from the ground up with Qt6 and C++20, it speaks the SmartSDR protocol natively and aims to replicate the full SmartSDR experience.
 
-**Current version: 0.2.0** | [Releases](https://github.com/ten9876/AetherSDR/releases) | [Discussions](https://github.com/ten9876/AetherSDR/discussions)
+**Current version: 0.2.1** | [Releases](https://github.com/ten9876/AetherSDR/releases) | [Discussions](https://github.com/ten9876/AetherSDR/discussions)
 
 ![AetherSDR Screenshot](docs/screenshot-v2.png)
 
@@ -104,7 +104,7 @@ The application will automatically discover FlexRadio transceivers on your local
 ## Roadmap
 
 - [ ] Multi-slice support
-- [ ] Audio TX (PC audio to radio — mic TX is working)
+- [ ] Audio input device selector (currently uses system default)
 - [ ] TNF (tracking notch filter) management
 - [ ] Band stacking registers
 - [ ] DAX / CAT interface

@@ -91,6 +91,8 @@ signals:
     // quality: "Excellent", "Very Good", "Good", "Fair", "Poor"
     // pingMs: round-trip time in milliseconds
     void networkQualityChanged(const QString& quality, int pingMs);
+    // Emitted when the radio assigns a TX audio stream ID.
+    void txAudioStreamReady(quint32 streamId);
 
 private slots:
     void onStatusReceived(const QString& object, const QMap<QString, QString>& kvs);
