@@ -13,6 +13,7 @@
 #include <QSignalBlocker>
 #include <QEvent>
 #include <QFrame>
+#include <QColorDialog>
 
 namespace AetherSDR {
 
@@ -740,11 +741,46 @@ void SpectrumOverlayMenu::buildDisplayPanel()
         emit fftFpsChanged(v);
     });
 
-    makeRow("Fill:", 0, 100, 70, m_fillSlider, m_fillLabel);
-    connect(m_fillSlider, &QSlider::valueChanged, this, [this](int v) {
-        m_fillLabel->setText(QString::number(v));
-        emit fftFillAlphaChanged(v / 100.0f);
-    });
+    // Fill row with color picker button
+    {
+        auto* lbl = new QLabel("Fill:");
+        lbl->setStyleSheet(labelStyle);
+        grid->addWidget(lbl, row, 0);
+
+        auto* fillRow = new QHBoxLayout;
+        m_fillSlider = new QSlider(Qt::Horizontal);
+        m_fillSlider->setRange(0, 100);
+        m_fillSlider->setValue(70);
+        m_fillSlider->setStyleSheet(sliderStyle);
+        fillRow->addWidget(m_fillSlider);
+
+        m_fillColorBtn = new QPushButton;
+        m_fillColorBtn->setFixedSize(18, 18);
+        m_fillColorBtn->setStyleSheet(
+            QString("QPushButton { background: %1; border: 1px solid #506070;"
+                    " border-radius: 2px; }")
+                .arg(m_fillColor.name()));
+        m_fillColorBtn->setToolTip("Choose fill color");
+        fillRow->addWidget(m_fillColorBtn);
+
+        grid->addLayout(fillRow, row, 1, 1, 2);
+        ++row;
+
+        connect(m_fillSlider, &QSlider::valueChanged, this, [this](int v) {
+            emit fftFillAlphaChanged(v / 100.0f);
+        });
+        connect(m_fillColorBtn, &QPushButton::clicked, this, [this] {
+            QColor c = QColorDialog::getColor(m_fillColor, this, "FFT Fill Color");
+            if (c.isValid()) {
+                m_fillColor = c;
+                m_fillColorBtn->setStyleSheet(
+                    QString("QPushButton { background: %1; border: 1px solid #506070;"
+                            " border-radius: 2px; }")
+                        .arg(c.name()));
+                emit fftFillColorChanged(c);
+            }
+        });
+    }
 
     // Weighted Average toggle
     auto* waLbl = new QLabel("Weighted Average:");

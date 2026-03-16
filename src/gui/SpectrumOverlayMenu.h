@@ -40,6 +40,7 @@ signals:
     void fftFpsChanged(int fps);
     void fftWeightedAverageChanged(bool on);
     void fftFillAlphaChanged(float alpha);
+    void fftFillColorChanged(const QColor& color);
     void wfColorGainChanged(int gain);
     void wfBlackLevelChanged(int level);
     void wfAutoBlackChanged(bool on);
@@ -113,6 +114,8 @@ private:
     QLabel*      m_fpsLabel{nullptr};
     QSlider*     m_fillSlider{nullptr};
     QLabel*      m_fillLabel{nullptr};
+    QPushButton* m_fillColorBtn{nullptr};
+    QColor       m_fillColor{0x00, 0xe5, 0xff};  // default cyan
     QPushButton* m_weightedAvgBtn{nullptr};
     QSlider*     m_gainSlider{nullptr};
     QLabel*      m_gainLabel{nullptr};

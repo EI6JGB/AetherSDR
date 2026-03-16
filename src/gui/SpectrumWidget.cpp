@@ -718,14 +718,19 @@ void SpectrumWidget::drawSpectrum(QPainter& p, const QRect& r)
 
     const int alphaTop = static_cast<int>(200 * m_fftFillAlpha);
     const int alphaBot = static_cast<int>(60 * m_fftFillAlpha);
+    // Derive darker bottom color from fill color
+    QColor topColor(m_fftFillColor);
+    topColor.setAlpha(alphaTop);
+    QColor botColor = m_fftFillColor.darker(300);
+    botColor.setAlpha(alphaBot);
     QLinearGradient grad(0, r.top(), 0, r.bottom());
-    grad.setColorAt(0.0, QColor(0x00, 0xe5, 0xff, alphaTop));
-    grad.setColorAt(1.0, QColor(0x00, 0x40, 0x60, alphaBot));
+    grad.setColorAt(0.0, topColor);
+    grad.setColorAt(1.0, botColor);
 
     p.setRenderHint(QPainter::Antialiasing, true);
     p.fillPath(fillPath, grad);
     // Stroke only the spectrum line, not the fill closure
-    p.setPen(QPen(QColor(0x00, 0xe5, 0xff), 1.5));
+    p.setPen(QPen(m_fftFillColor, 1.5));
     p.drawPath(linePath);
     p.setRenderHint(QPainter::Antialiasing, false);
 }

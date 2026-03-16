@@ -182,6 +182,8 @@ MainWindow::MainWindow(QWidget* parent)
     auto* overlay = spectrum()->overlayMenu();
     connect(overlay, &SpectrumOverlayMenu::fftFillAlphaChanged,
             spectrum(), &SpectrumWidget::setFftFillAlpha);
+    connect(overlay, &SpectrumOverlayMenu::fftFillColorChanged,
+            spectrum(), &SpectrumWidget::setFftFillColor);
     connect(overlay, &SpectrumOverlayMenu::fftAverageChanged,
             spectrum(), &SpectrumWidget::setFftAverage);
     connect(overlay, &SpectrumOverlayMenu::fftFpsChanged,

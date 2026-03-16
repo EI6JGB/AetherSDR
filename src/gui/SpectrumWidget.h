@@ -3,6 +3,7 @@
 #include <QWidget>
 #include <QVector>
 #include <QImage>
+#include <QColor>
 
 namespace AetherSDR {
 
@@ -86,7 +87,9 @@ public:
     void setFftWeightedAvg(bool on)    { m_fftWeightedAvg = on; }
     void setFftFps(int fps)            { m_fftFps = fps; }
     void setFftFillAlpha(float a)      { m_fftFillAlpha = std::clamp(a, 0.0f, 1.0f); update(); }
+    void setFftFillColor(const QColor& c) { m_fftFillColor = c; update(); }
     float fftFillAlpha() const         { return m_fftFillAlpha; }
+    QColor fftFillColor() const        { return m_fftFillColor; }
     int   fftAverage() const           { return m_fftAverage; }
     int   fftFps() const               { return m_fftFps; }
     bool  fftWeightedAvg() const       { return m_fftWeightedAvg; }
@@ -171,6 +174,7 @@ private:
     bool  m_fftWeightedAvg{false};
     int   m_fftFps{25};
     float m_fftFillAlpha{0.70f};     // client-side fill opacity (0-1)
+    QColor m_fftFillColor{0x00, 0xe5, 0xff};  // client-side fill color (default cyan)
 
     // ── Waterfall display controls (radio-side via "display panafall set") ─
     int   m_wfColorGain{50};         // 0-100, maps intensity to color range
