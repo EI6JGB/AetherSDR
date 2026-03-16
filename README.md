@@ -15,7 +15,7 @@ AetherSDR brings FlexRadio operation to Linux without Wine or virtual machines. 
 
 **Current version: 0.2.6** | [Releases](https://github.com/ten9876/AetherSDR/releases) | [Discussions](https://github.com/ten9876/AetherSDR/discussions)
 
-![AetherSDR Screenshot](docs/screenshot-v2.png)
+![AetherSDR Screenshot](docs/screenshot-v3.png)
 
 ---
 
