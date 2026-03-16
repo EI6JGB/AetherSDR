@@ -35,9 +35,11 @@ private:
     QLabel* m_hwVersionLabel{nullptr};
     QLabel* m_regionLabel{nullptr};
     QLabel* m_optionsLabel{nullptr};
+    QLabel* m_remoteOnLabel{nullptr};
     QLabel* m_modelLabel{nullptr};
     QLineEdit* m_nicknameEdit{nullptr};
     QLineEdit* m_callsignEdit{nullptr};
+    QPushButton* m_remoteOnBtn{nullptr};
 };
 
 } // namespace AetherSDR

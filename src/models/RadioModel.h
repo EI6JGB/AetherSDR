@@ -51,6 +51,16 @@ public:
     float paTemp()    const { return m_paTemp; }
     float txPower()   const { return m_txPower; }
     QStringList antennaList() const { return m_antList; }
+    QString serial()       const;
+    QString chassisSerial() const { return m_chassisSerial; }
+    QString callsign()     const { return m_callsign; }
+    QString nickname()     const { return m_nickname; }
+    QString region()       const { return m_region; }
+    QString radioOptions() const { return m_radioOptions; }
+    bool    remoteOnEnabled() const { return m_remoteOnEnabled; }
+    bool    multiFlexEnabled() const { return m_multiFlexEnabled; }
+    void    setRemoteOnEnabled(bool on);
+    void    setMultiFlexEnabled(bool on);
     double panCenterMhz()    const { return m_panCenterMhz; }
     double panBandwidthMhz() const { return m_panBandwidthMhz; }
 
@@ -134,6 +144,13 @@ private:
     QString     m_protocolVersion;  // protocol version from V line (e.g. "1.4.0.0")
     float       m_paTemp{0.0f};
     float       m_txPower{0.0f};
+    QString     m_chassisSerial;
+    QString     m_callsign;
+    QString     m_nickname;
+    QString     m_region;
+    QString     m_radioOptions;
+    bool        m_remoteOnEnabled{false};
+    bool        m_multiFlexEnabled{true};
     QStringList m_antList;
 
     double  m_panCenterMhz{14.225};

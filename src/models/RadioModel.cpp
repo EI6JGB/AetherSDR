@@ -186,6 +186,30 @@ void RadioModel::onConnected()
                 else
                     qDebug() << "RadioModel: client udpport returned error" << Qt::hex << code2;
 
+                // Query radio info (region, callsign, options, etc.)
+                // Response is comma-separated key=value pairs.
+                m_connection.sendCommand("info",
+                    [this](int code, const QString& body) {
+                        if (code != 0) return;
+                        for (const QString& kv : body.split(',')) {
+                            const int eq = kv.indexOf('=');
+                            if (eq < 0) continue;
+                            const QString key = kv.left(eq).trimmed();
+                            const QString val = kv.mid(eq + 1).trimmed()
+                                .remove('\\').remove('"');
+                            if (key == "callsign")        m_callsign = val;
+                            else if (key == "name")        m_nickname = val;
+                            else if (key == "region")      m_region = val;
+                            else if (key == "options")     m_radioOptions = val;
+                            else if (key == "model")       m_model = val;
+                            else if (key == "chassis_serial") m_chassisSerial = val;
+                            else if (key == "software_ver")   m_version = val;
+                        }
+                        qDebug() << "RadioModel: info — callsign:" << m_callsign
+                                 << "region:" << m_region << "options:" << m_radioOptions;
+                        emit infoChanged();
+                    });
+
                 m_connection.sendCommand("slice list",
                     [this](int code3, const QString& body) {
                         if (code3 != 0) {
@@ -616,10 +640,41 @@ void RadioModel::onStatusReceived(const QString& object,
     // WAN, etc. — informational, ignore for now.
 }
 
+QString RadioModel::serial() const
+{
+    return m_lastInfo.serial;
+}
+
+void RadioModel::setRemoteOnEnabled(bool on)
+{
+    m_remoteOnEnabled = on;
+    m_connection.sendCommand(QString("radio set remote_on_enabled=%1").arg(on ? 1 : 0));
+    emit infoChanged();
+}
+
+void RadioModel::setMultiFlexEnabled(bool on)
+{
+    m_multiFlexEnabled = on;
+    m_connection.sendCommand(QString("radio set mf_enable=%1").arg(on ? 1 : 0));
+    emit infoChanged();
+}
+
 void RadioModel::handleRadioStatus(const QMap<QString, QString>& kvs)
 {
     bool changed = false;
-    if (kvs.contains("model")) { m_model = kvs["model"]; changed = true; }
+    if (kvs.contains("model"))    { m_model = kvs["model"]; changed = true; }
+    if (kvs.contains("callsign")) { m_callsign = kvs["callsign"]; changed = true; }
+    if (kvs.contains("nickname")) { m_nickname = kvs["nickname"]; changed = true; }
+    if (kvs.contains("region"))   { m_region = kvs["region"]; changed = true; }
+    if (kvs.contains("radio_options")) { m_radioOptions = kvs["radio_options"]; changed = true; }
+    if (kvs.contains("remote_on_enabled")) {
+        m_remoteOnEnabled = kvs["remote_on_enabled"] == "1";
+        changed = true;
+    }
+    if (kvs.contains("mf_enable")) {
+        m_multiFlexEnabled = kvs["mf_enable"] == "1";
+        changed = true;
+    }
     if (changed) emit infoChanged();
 }
 

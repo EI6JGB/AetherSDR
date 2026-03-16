@@ -35,7 +35,7 @@ RadioSetupDialog::RadioSetupDialog(RadioModel* model, QWidget* parent)
     : QDialog(parent), m_model(model)
 {
     setWindowTitle("Radio Setup");
-    setMinimumSize(500, 400);
+    setMinimumSize(580, 400);
     setStyleSheet("QDialog { background: #0f0f1a; }");
 
     auto* layout = new QVBoxLayout(this);
@@ -76,6 +76,25 @@ QWidget* RadioSetupDialog::buildRadioTab()
     auto* vbox = new QVBoxLayout(page);
     vbox->setSpacing(8);
 
+    // Toggle button style: green when on, red when off
+    static const QString kToggleStyle =
+        "QPushButton { background: #1a2a3a; border: 1px solid #304050; "
+        "border-radius: 3px; color: #c8d8e8; font-size: 11px; font-weight: bold; "
+        "padding: 3px 10px; }"
+        "QPushButton:checked { background: #1a5030; color: #00e060; "
+        "border: 1px solid #20a040; }";
+
+    auto makeToggle = [](const QString& text, bool checked) {
+        auto* btn = new QPushButton(checked ? "Enabled" : "Disabled");
+        btn->setCheckable(true);
+        btn->setChecked(checked);
+        btn->setStyleSheet(kToggleStyle);
+        QObject::connect(btn, &QPushButton::toggled, btn, [btn](bool on) {
+            btn->setText(on ? "Enabled" : "Disabled");
+        });
+        return btn;
+    };
+
     // Radio Information group
     {
         auto* group = new QGroupBox("Radio Information");
@@ -84,13 +103,18 @@ QWidget* RadioSetupDialog::buildRadioTab()
         grid->setSpacing(6);
 
         grid->addWidget(new QLabel("Radio SN:"), 0, 0);
-        m_serialLabel = new QLabel(m_model->name());
+        m_serialLabel = new QLabel(m_model->chassisSerial().isEmpty()
+            ? m_model->serial() : m_model->chassisSerial());
         m_serialLabel->setStyleSheet(kValueStyle);
         grid->addWidget(m_serialLabel, 0, 1);
 
         grid->addWidget(new QLabel("Region:"), 0, 2);
-        m_regionLabel = new QLabel("USA");
-        m_regionLabel->setStyleSheet(kValueStyle);
+        m_regionLabel = new QLabel(m_model->region().isEmpty() ? "USA" : m_model->region());
+        m_regionLabel->setStyleSheet(
+            "QLabel { background: #1a2a3a; border: 1px solid #304050; "
+            "border-radius: 3px; color: #00c8ff; font-size: 11px; font-weight: bold; "
+            "padding: 3px 10px; }");
+        m_regionLabel->setAlignment(Qt::AlignCenter);
         grid->addWidget(m_regionLabel, 0, 3);
 
         grid->addWidget(new QLabel("HW Version:"), 1, 0);
@@ -98,20 +122,30 @@ QWidget* RadioSetupDialog::buildRadioTab()
         m_hwVersionLabel->setStyleSheet(kValueStyle);
         grid->addWidget(m_hwVersionLabel, 1, 1);
 
+        grid->addWidget(new QLabel("Remote On:"), 1, 2);
+        m_remoteOnBtn = makeToggle("", m_model->remoteOnEnabled());
+        connect(m_remoteOnBtn, &QPushButton::toggled, this, [this](bool on) {
+            m_model->setRemoteOnEnabled(on);
+        });
+        grid->addWidget(m_remoteOnBtn, 1, 3);
+
         grid->addWidget(new QLabel("Options:"), 2, 0);
-        m_optionsLabel = new QLabel(m_model->hasAmplifier() ? "GPS, PGXL" : "GPS");
+        m_optionsLabel = new QLabel(m_model->radioOptions().isEmpty()
+            ? (m_model->hasAmplifier() ? "GPS, PGXL" : "GPS")
+            : m_model->radioOptions());
         m_optionsLabel->setStyleSheet(kValueStyle);
         grid->addWidget(m_optionsLabel, 2, 1);
 
         grid->addWidget(new QLabel("FlexControl:"), 2, 2);
-        auto* fcLabel = new QLabel("Enabled");
-        fcLabel->setStyleSheet("QLabel { color: #00c040; font-size: 12px; font-weight: bold; }");
-        grid->addWidget(fcLabel, 2, 3);
+        auto* fcBtn = makeToggle("", true);
+        grid->addWidget(fcBtn, 2, 3);
 
         grid->addWidget(new QLabel("multiFLEX:"), 3, 2);
-        auto* mfLabel = new QLabel("Enabled");
-        mfLabel->setStyleSheet("QLabel { color: #00c040; font-size: 12px; font-weight: bold; }");
-        grid->addWidget(mfLabel, 3, 3);
+        auto* mfBtn = makeToggle("", m_model->multiFlexEnabled());
+        connect(mfBtn, &QPushButton::toggled, this, [this](bool on) {
+            m_model->setMultiFlexEnabled(on);
+        });
+        grid->addWidget(mfBtn, 3, 3);
 
         for (auto* lbl : group->findChildren<QLabel*>()) {
             if (lbl->styleSheet().isEmpty())
@@ -134,14 +168,22 @@ QWidget* RadioSetupDialog::buildRadioTab()
         grid->addWidget(m_modelLabel, 0, 1);
 
         grid->addWidget(new QLabel("Nickname:"), 0, 2);
-        m_nicknameEdit = new QLineEdit(m_model->name());
+        m_nicknameEdit = new QLineEdit(m_model->nickname().isEmpty()
+            ? m_model->name() : m_model->nickname());
         m_nicknameEdit->setStyleSheet(kEditStyle);
         grid->addWidget(m_nicknameEdit, 0, 3);
 
         grid->addWidget(new QLabel("Callsign:"), 1, 0);
-        m_callsignEdit = new QLineEdit;
+        m_callsignEdit = new QLineEdit(m_model->callsign());
         m_callsignEdit->setStyleSheet(kEditStyle);
         grid->addWidget(m_callsignEdit, 1, 1);
+
+        connect(m_nicknameEdit, &QLineEdit::editingFinished, this, [this] {
+            m_model->connection()->sendCommand("radio name " + m_nicknameEdit->text());
+        });
+        connect(m_callsignEdit, &QLineEdit::editingFinished, this, [this] {
+            m_model->connection()->sendCommand("radio callsign " + m_callsignEdit->text());
+        });
 
         for (auto* lbl : group->findChildren<QLabel*>()) {
             if (lbl->styleSheet().isEmpty())
