@@ -24,6 +24,9 @@ find_package(Qt6 REQUIRED COMPONENTS
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(PORTAUDIO portaudio-2.0)
 
+# PipeWire (optional — DAX virtual audio devices)
+pkg_check_modules(PIPEWIRE libpipewire-0.3)
+
 # Sources
 set(CORE_SOURCES
     src/core/AppSettings.cpp
@@ -90,6 +93,16 @@ target_link_libraries(AetherSDR PRIVATE
     Qt6::Network
     Qt6::Multimedia
 )
+
+if(PIPEWIRE_FOUND)
+    message(STATUS "PipeWire found (${PIPEWIRE_VERSION}) — DAX virtual audio enabled")
+    target_sources(AetherSDR PRIVATE src/core/DaxAudioManager.cpp)
+    target_compile_definitions(AetherSDR PRIVATE HAVE_PIPEWIRE)
+    target_include_directories(AetherSDR PRIVATE ${PIPEWIRE_INCLUDE_DIRS})
+    target_link_libraries(AetherSDR PRIVATE ${PIPEWIRE_LIBRARIES})
+else()
+    message(STATUS "PipeWire not found — DAX virtual audio disabled")
+endif()
 
 if(PORTAUDIO_FOUND)
     target_compile_definitions(AetherSDR PRIVATE HAVE_PORTAUDIO)
