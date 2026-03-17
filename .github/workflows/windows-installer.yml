@@ -12,6 +12,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Set up MSVC
+        uses: ilammy/msvc-dev-cmd@v1
+
       - name: Install Qt6
         uses: jurplel/install-qt-action@v4
         with:
@@ -21,27 +24,23 @@ jobs:
           arch: 'win64_msvc2019_64'
           modules: 'qtmultimedia'
 
+      - name: Install Ninja
+        run: choco install ninja -y
+
       - name: Configure
-        shell: cmd
         run: |
-          cmake -B build -G "Ninja" ^
-            -DCMAKE_BUILD_TYPE=Release ^
-            -DCMAKE_C_COMPILER=cl ^
-            -DCMAKE_CXX_COMPILER=cl
+          cmake -B build -G "Ninja" -DCMAKE_BUILD_TYPE=Release
 
       - name: Build
-        shell: cmd
-        run: cmake --build build --config Release -j%NUMBER_OF_PROCESSORS%
+        run: cmake --build build -j$env:NUMBER_OF_PROCESSORS
 
       - name: Deploy Qt
-        shell: cmd
         run: |
           mkdir deploy
           copy build\AetherSDR.exe deploy\
           windeployqt deploy\AetherSDR.exe --release --no-translations --no-system-d3d-compiler
 
       - name: Create installer (ZIP)
-        shell: pwsh
         run: |
           Compress-Archive -Path deploy\* -DestinationPath "AetherSDR-${{ github.ref_name }}-Windows-x64.zip"
 
