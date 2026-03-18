@@ -19,6 +19,9 @@ When helping with AetherSDR:
 - Never suggest Wine/Crossover workarounds — goal is native
 - Flag any proposal that would break slice 0 RX flow
 - If unsure about protocol behavior → ask for logs/wireshark captures first
+- **Use `AppSettings`, never `QSettings`** — see "Settings Persistence" below
+- **Read `CONTRIBUTING.md`** for full contributor guidelines, coding conventions,
+  and the AI-to-AI debugging protocol (open a GitHub issue for cross-agent coordination)
 
 ## Build
 
