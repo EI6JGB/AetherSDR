@@ -48,8 +48,9 @@ public:
     float rxVolume() const  { return m_rxVolume; }
     void  setRxVolume(float v);
 
-    bool isMuted() const   { return m_muted; }
+    bool isMuted() const       { return m_muted; }
     void setMuted(bool m);
+    bool isTxStreaming() const { return m_audioSource != nullptr; }
 
     // Device selection (restarts the stream if currently running)
     void setOutputDevice(const QAudioDevice& dev);

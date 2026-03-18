@@ -139,6 +139,7 @@ public:
     };
     void setTnfMarkers(const QVector<TnfMarker>& markers);
     void setTnfGlobalEnabled(bool on);
+    void setTransmitting(bool tx) { m_transmitting = tx; }
 
 signals:
     // Emitted when user clicks on an inactive slice marker.
@@ -285,6 +286,8 @@ private:
     // On-screen indicators (WNB, RF Gain)
     bool m_wnbActive{false};
     int  m_rfGainValue{0};
+
+    bool     m_transmitting{false};
 
     // Measured waterfall row interval (for time scale)
     float    m_wfRowIntervalMs{40.0f};

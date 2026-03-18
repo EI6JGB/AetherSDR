@@ -35,6 +35,8 @@ public:
 
     // Connect/disconnect the ANT panel to a slice model.
     void setSlice(SliceModel* slice);
+    void setWnbState(bool on, int level);
+    void setRfGain(int gain);
 
 protected:
     bool eventFilter(QObject* obj, QEvent* event) override;

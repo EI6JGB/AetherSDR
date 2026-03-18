@@ -672,6 +672,14 @@ void PhoneCwApplet::updateMeters(float micLevel, float compLevel,
 {
     Q_UNUSED(compLevel);
 
+    // Suppress mic meter when met_in_rx is off and not transmitting
+    if (m_model && !m_model->metInRx() && !m_model->isTransmitting()) {
+        m_levelGauge->setValue(-150.0f);
+        m_levelGauge->setPeakValue(-150.0f);
+        m_compGauge->setValue(0.0f);
+        return;
+    }
+
     m_levelGauge->setValue(micLevel);
     m_levelGauge->setPeakValue(micPeak);
 

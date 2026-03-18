@@ -189,6 +189,33 @@ MainWindow::MainWindow(QWidget* parent)
             this, [this](quint32 streamId) {
         m_audio.setTxStreamId(streamId);
         qDebug() << "MainWindow: DAX TX stream ID set to" << Qt::hex << streamId;
+        // Start PC audio TX if mic_selection is PC
+        if (m_radioModel.transmitModel()->micSelection() == "PC") {
+            m_audio.startTxStream(
+                m_radioModel.connection()->radioAddress(),
+                4991);
+        }
+    });
+    // Start/stop PC audio TX when mic_selection changes
+    connect(m_radioModel.transmitModel(), &TransmitModel::micStateChanged,
+            this, [this]() {
+        if (m_radioModel.transmitModel()->micSelection() == "PC") {
+            if (!m_audio.isTxStreaming()) {
+                m_audio.startTxStream(
+                    m_radioModel.connection()->radioAddress(),
+                    4991);
+            }
+        } else {
+            m_audio.stopTxStream();
+        }
+    });
+
+    // TX/RX transition → waterfall tile source switching
+    connect(m_radioModel.transmitModel(), &TransmitModel::moxChanged,
+            this, [this](bool tx) {
+        spectrum()->setTransmitting(tx);
+        // On RX resume, native tiles will restart and m_hasNativeWaterfall
+        // will be set again by the first arriving tile.
     });
 
     // ── Panadapter stream → spectrum widget ───────────────────────────────
@@ -219,6 +246,18 @@ MainWindow::MainWindow(QWidget* parent)
             m_radioModel.setWaterfallAutoBlack(spectrum()->wfAutoBlack());
             int rate = spectrum()->wfLineDuration();
             m_radioModel.setWaterfallLineDuration(rate);
+            // Restore saved WNB and RF gain
+            auto& s = AppSettings::instance();
+            bool wnbOn = s.value("DisplayWnbEnabled", "False").toString() == "True";
+            int wnbLevel = s.value("DisplayWnbLevel", "50").toInt();
+            int rfGain = s.value("DisplayRfGain", "0").toInt();
+            m_radioModel.setPanWnb(wnbOn);
+            m_radioModel.setPanWnbLevel(wnbLevel);
+            m_radioModel.setPanRfGain(rfGain);
+            spectrum()->setWnbActive(wnbOn);
+            spectrum()->setRfGain(rfGain);
+            spectrum()->overlayMenu()->setWnbState(wnbOn, wnbLevel);
+            spectrum()->overlayMenu()->setRfGain(rfGain);
             // Nudge rate to force waterfall tile re-sync
             QTimer::singleShot(500, this, [this, rate]() {
                 m_radioModel.setWaterfallLineDuration(rate + 1);
@@ -327,13 +366,24 @@ MainWindow::MainWindow(QWidget* parent)
             this, [this](bool on) {
         m_radioModel.setPanWnb(on);
         spectrum()->setWnbActive(on);
+        auto& s = AppSettings::instance();
+        s.setValue("DisplayWnbEnabled", on ? "True" : "False");
+        s.save();
     });
     connect(spectrum()->overlayMenu(), &SpectrumOverlayMenu::wnbLevelChanged,
-            &m_radioModel, &RadioModel::setPanWnbLevel);
+            this, [this](int level) {
+        m_radioModel.setPanWnbLevel(level);
+        auto& s = AppSettings::instance();
+        s.setValue("DisplayWnbLevel", QString::number(level));
+        s.save();
+    });
     connect(spectrum()->overlayMenu(), &SpectrumOverlayMenu::rfGainChanged,
             this, [this](int gain) {
         m_radioModel.setPanRfGain(gain);
         spectrum()->setRfGain(gain);
+        auto& s = AppSettings::instance();
+        s.setValue("DisplayRfGain", QString::number(gain));
+        s.save();
     });
 
     // ── Display sub-panel → SpectrumWidget (client-side for now) ─────────

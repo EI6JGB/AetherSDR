@@ -936,6 +936,21 @@ void SpectrumOverlayMenu::toggleDisplayPanel()
     }
 }
 
+void SpectrumOverlayMenu::setWnbState(bool on, int level)
+{
+    QSignalBlocker b1(m_wnbBtn), b2(m_wnbSlider);
+    m_wnbBtn->setChecked(on);
+    m_wnbSlider->setValue(level);
+    m_wnbLabel->setText(QString::number(level));
+}
+
+void SpectrumOverlayMenu::setRfGain(int gain)
+{
+    QSignalBlocker b(m_rfGainSlider);
+    m_rfGainSlider->setValue(gain);
+    m_rfGainLabel->setText(QString::number(gain));
+}
+
 bool SpectrumOverlayMenu::eventFilter(QObject* obj, QEvent* event)
 {
     if (event->type() == QEvent::MouseButtonDblClick) {

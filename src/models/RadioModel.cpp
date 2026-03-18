@@ -424,7 +424,7 @@ void RadioModel::registerAsGuiClient(const QString& clientId)
                                     quint32 id = body.trimmed().toUInt(nullptr, 16);
                                     qDebug() << "RadioModel: dax_tx stream created, id:"
                                              << Qt::hex << id;
-                                    sendCmd("transmit set mic_selection=PC");
+                                    sendCmd("transmit set met_in_rx=1");
                                     emit txAudioStreamReady(id);
                                 } else {
                                     qWarning() << "RadioModel: stream create dax_tx failed, code"
@@ -1563,7 +1563,6 @@ void RadioModel::createAudioStream()
             if (code == 0) {
                 quint32 id = body.trimmed().toUInt(nullptr, 16);
                 qDebug() << "RadioModel: dax_tx stream re-created, id:" << Qt::hex << id;
-                sendCmd("transmit set mic_selection=PC");
                 emit txAudioStreamReady(id);
             }
         });

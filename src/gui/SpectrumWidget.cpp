@@ -253,15 +253,23 @@ void SpectrumWidget::updateSpectrum(const QVector<float>& binsDbm)
 
     // Use FFT data for waterfall only when native tiles aren't available.
     // If native tiles stop arriving (e.g., disconnect), fall back after 2 seconds.
-    if (m_hasNativeWaterfall) {
-        const qint64 now = QDateTime::currentMSecsSinceEpoch();
-        if (now - m_lastNativeTileMs > 2000) {
-            m_hasNativeWaterfall = false;
-            qDebug() << "SpectrumWidget: native waterfall tiles timed out, falling back to FFT-derived";
+    // During TX: immediately use FFT-derived rows (radio stops sending tiles).
+    // During RX: use native tiles, fall back to FFT after 2s timeout.
+    if (m_transmitting) {
+        // TX: always push FFT rows
+        if (!m_waterfall.isNull())
+            pushWaterfallRow(binsDbm, m_waterfall.width());
+    } else {
+        if (m_hasNativeWaterfall) {
+            const qint64 now = QDateTime::currentMSecsSinceEpoch();
+            if (now - m_lastNativeTileMs > 2000) {
+                m_hasNativeWaterfall = false;
+                qDebug() << "SpectrumWidget: native waterfall tiles timed out, falling back to FFT-derived";
+            }
         }
+        if (!m_hasNativeWaterfall && !m_waterfall.isNull())
+            pushWaterfallRow(binsDbm, m_waterfall.width());
     }
-    if (!m_hasNativeWaterfall && !m_waterfall.isNull())
-        pushWaterfallRow(binsDbm, m_waterfall.width());
 
     update();
 }
@@ -828,6 +836,12 @@ void SpectrumWidget::mouseDoubleClickEvent(QMouseEvent* ev)
     const int wfY = specH + DIVIDER_H + FREQ_SCALE_H;
     const int y = static_cast<int>(ev->position().y());
     const int mx = static_cast<int>(ev->position().x());
+
+    // Consume double-clicks on the dBm and time strips
+    if (mx >= width() - DBM_STRIP_W) {
+        ev->accept();
+        return;
+    }
 
     // Double-click on off-screen slice indicator → recenter on that slice
     for (int oi = 0; oi < m_offScreenRects.size(); ++oi) {
@@ -1581,15 +1595,7 @@ void SpectrumWidget::drawTimeScale(QPainter& p, const QRect& wfRect)
     p.setFont(f);
     const QFontMetrics fm(f);
 
-    // Adaptive step: aim for ~4-6 labels
-    float rawStep = totalSec / 5.0f;
-    float stepSec;
-    if      (rawStep >= 60.0f) stepSec = 60.0f;
-    else if (rawStep >= 30.0f) stepSec = 30.0f;
-    else if (rawStep >= 10.0f) stepSec = 10.0f;
-    else if (rawStep >= 5.0f)  stepSec = 5.0f;
-    else if (rawStep >= 2.0f)  stepSec = 2.0f;
-    else                        stepSec = 1.0f;
+    const float stepSec = 5.0f;
 
     for (float sec = 0; sec <= totalSec; sec += stepSec) {
         const float frac = sec / totalSec;
@@ -1600,12 +1606,7 @@ void SpectrumWidget::drawTimeScale(QPainter& p, const QRect& wfRect)
         p.setPen(QColor(0x50, 0x70, 0x80));
         p.drawLine(stripX, y, stripX + 4, y);
 
-        // Label
-        QString label;
-        if (sec < 60.0f)
-            label = QString("%1s").arg(static_cast<int>(sec));
-        else
-            label = QString("%1m").arg(static_cast<int>(sec / 60.0f));
+        const QString label = QString("%1s").arg(static_cast<int>(sec));
 
         p.setPen(QColor(0x80, 0xa0, 0xb0));
         p.drawText(stripX + 6, y + fm.ascent() / 2, label);

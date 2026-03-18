@@ -112,9 +112,9 @@ private:
     int m_sLevelIdx{-1};     // "SLC" / "LEVEL"
     int m_fwdPwrIdx{-1};     // "FWDPWR"
     int m_swrIdx{-1};        // "SWR"
-    int m_micPeakIdx{-1};    // "TX" / "MICPEAK"
+    int m_micPeakIdx{-1};    // "COD-" / "MICPEAK"
     int m_compPeakIdx{-1};   // "TX" / "COMPPEAK"
-    int m_micLevelIdx{-1};   // "TX" / "MIC" (instantaneous)
+    int m_micLevelIdx{-1};   // "COD-" / "MIC" (RX level)
     int m_compLevelIdx{-1};  // "TX" / "COMP" (instantaneous)
     int m_alcIdx{-1};        // "TX" / "HWALC"
     int m_paTempIdx{-1};     // "RAD" / "PATEMP"
