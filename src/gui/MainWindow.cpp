@@ -556,6 +556,17 @@ MainWindow::MainWindow(QWidget* parent)
         if (auto* btn = spectrum()->overlayMenu()->dspNr2Button())
             { QSignalBlocker sb(btn); btn->setChecked(on); }
     });
+    // Overlay DSP panel RN2 → forward to VfoWidget RN2 button
+    connect(spectrum()->overlayMenu(), &SpectrumOverlayMenu::rn2Toggled,
+            this, [this](bool on) {
+        spectrum()->vfoWidget()->rn2Button()->setChecked(on);  // triggers rn2Toggled
+    });
+    // Sync overlay RN2 button when state changes
+    connect(&m_audio, &AudioEngine::rn2EnabledChanged,
+            this, [this](bool on) {
+        if (auto* btn = spectrum()->overlayMenu()->dspRn2Button())
+            { QSignalBlocker sb(btn); btn->setChecked(on); }
+    });
 
     // RxApplet NR button 3-state cycle → NR2 enable/disable
     connect(m_appletPanel->rxApplet(), &RxApplet::nr2CycleToggled,
@@ -576,6 +587,23 @@ MainWindow::MainWindow(QWidget* parent)
             // NR2 turned off — button goes to off state
             rx->setNrState(0);
         }
+    });
+
+    // ── Client-side RN2 (RNNoise) toggle: VfoWidget → AudioEngine ─────────
+    connect(spectrum()->vfoWidget(), &VfoWidget::rn2Toggled,
+            this, [this](bool on) {
+        m_audio.setRn2Enabled(on);
+    });
+    connect(&m_audio, &AudioEngine::rn2EnabledChanged,
+            this, [this](bool on) {
+        QSignalBlocker sb(spectrum()->vfoWidget()->rn2Button());
+        spectrum()->vfoWidget()->rn2Button()->setChecked(on);
+    });
+
+    // ── RxApplet RNN 3-state cycle → RN2 enable/disable ────────────────────
+    connect(m_appletPanel->rxApplet(), &RxApplet::rn2CycleToggled,
+            this, [this](bool on) {
+        m_audio.setRn2Enabled(on);
     });
 
     // ── Tuning step size → spectrum widget ─────────────────────────────────

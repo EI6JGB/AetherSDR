@@ -42,6 +42,7 @@ public:
     struct XvtrBand { QString name; double rfFreqMhz; };
     void setXvtrBands(const QVector<XvtrBand>& bands);
     QPushButton* dspNr2Button() const;
+    QPushButton* dspRn2Button() const;
 
 protected:
     bool eventFilter(QObject* obj, QEvent* event) override;
@@ -54,6 +55,7 @@ signals:
     void addTnfClicked();
     void daxClicked();
     void nr2Toggled(bool on);
+    void rn2Toggled(bool on);
     // Display sub-panel signals
     void fftAverageChanged(int frames);
     void fftFpsChanged(int fps);

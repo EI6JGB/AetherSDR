@@ -39,12 +39,14 @@ public:
     void updatePosition(int vfoX, int specTop);
 
     QPushButton* nr2Button() const { return m_nr2Btn; }
+    QPushButton* rn2Button() const { return m_rn2Btn; }
 
 Q_SIGNALS:
     void afGainChanged(int value);
     void closeSliceRequested();
     void lockToggled(bool locked);
     void nr2Toggled(bool on);
+    void rn2Toggled(bool on);
     void pcAudioToggled(bool on);
 
 protected:
@@ -113,6 +115,7 @@ private:
     QPushButton* m_nrlBtn{nullptr};
     QPushButton* m_nrsBtn{nullptr};
     QPushButton* m_rnnBtn{nullptr};
+    QPushButton* m_rn2Btn{nullptr};
     QPushButton* m_nrfBtn{nullptr};
     QPushButton* m_anflBtn{nullptr};
     QPushButton* m_anftBtn{nullptr};

@@ -69,7 +69,7 @@ inline constexpr BandSegment kBandPlan[] = {
     {7.025,  7.040,  "CW",         "E,G",    0x30, 0x60, 0xff},
     {7.040,  7.070,  "DATA DX",    "E,G",    0xc0, 0x30, 0x30},
     {7.070,  7.125,  "DATA",       "E,G",    0xc0, 0x30, 0x30},
-    {7.125,  7.175,  "PHONE",      "E,G",    0xff, 0x80, 0x00},
+    {7.125,  7.175,  "PHONE",      "E",      0xff, 0x80, 0x00},
     {7.175,  7.290,  "PHONE",      "E,G",    0xff, 0x80, 0x00},
     {7.290,  7.300,  "AM",         "E,G",    0xff, 0x80, 0x00},
 

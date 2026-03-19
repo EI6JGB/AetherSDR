@@ -1,5 +1,6 @@
 #include "AudioEngine.h"
 #include "SpectralNR.h"
+#include "RNNoiseFilter.h"
 
 #include <QMediaDevices>
 #include <QAudioDevice>
@@ -123,7 +124,11 @@ void AudioEngine::feedAudioData(const QByteArray& pcm)
             m_audioDevice->write(data);
     };
 
-    if (m_nr2Enabled && m_nr2) {
+    if (m_rn2Enabled && m_rn2) {
+        QByteArray processed = m_rn2->process(pcm);
+        writeAudio(processed);
+        emit levelChanged(computeRMS(processed));
+    } else if (m_nr2Enabled && m_nr2) {
         processNr2(pcm);
         writeAudio(m_nr2Output);
         emit levelChanged(computeRMS(m_nr2Output));
@@ -161,6 +166,8 @@ void AudioEngine::setNr2Enabled(bool on)
     if (m_nr2Enabled == on) return;
     m_nr2Enabled = on;
     if (on) {
+        // Disable RN2 if it was on — they're mutually exclusive
+        if (m_rn2Enabled) setRn2Enabled(false);
         // Load wisdom (should already exist — MainWindow generates it on first NR2 press)
         static bool wisdomLoaded = false;
         if (!wisdomLoaded) {
@@ -173,6 +180,21 @@ void AudioEngine::setNr2Enabled(bool on)
     }
     qDebug() << "AudioEngine: NR2" << (on ? "enabled" : "disabled");
     emit nr2EnabledChanged(on);
+}
+
+void AudioEngine::setRn2Enabled(bool on)
+{
+    if (m_rn2Enabled == on) return;
+    m_rn2Enabled = on;
+    if (on) {
+        m_rn2 = std::make_unique<RNNoiseFilter>();
+        // Disable NR2 if it was on — they're mutually exclusive
+        if (m_nr2Enabled) setNr2Enabled(false);
+    } else {
+        m_rn2.reset();
+    }
+    qDebug() << "AudioEngine: RN2 (RNNoise)" << (on ? "enabled" : "disabled");
+    emit rn2EnabledChanged(on);
 }
 
 void AudioEngine::processNr2(const QByteArray& stereoPcm)

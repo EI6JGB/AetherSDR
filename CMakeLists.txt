@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
-project(AetherSDR VERSION 0.4.11 LANGUAGES CXX)
+project(AetherSDR VERSION 0.4.12 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -71,6 +71,7 @@ set(CORE_SOURCES
     src/core/RigctlServer.cpp
     src/core/FirmwareUploader.cpp
     src/core/FirmwareStager.cpp
+    src/core/RNNoiseFilter.cpp
 )
 
 set(MODEL_SOURCES
@@ -116,9 +117,53 @@ set(ALL_SOURCES
     ${GUI_SOURCES}
 )
 
+# Bundled RNNoise (Mozilla/Xiph BSD-3) — client-side neural noise suppression
+set(RNNOISE_DIR ${CMAKE_SOURCE_DIR}/third_party/rnnoise)
+set(RNNOISE_SOURCES
+    ${RNNOISE_DIR}/src/denoise.c
+    ${RNNOISE_DIR}/src/celt_lpc.c
+    ${RNNOISE_DIR}/src/kiss_fft.c
+    ${RNNOISE_DIR}/src/pitch.c
+    ${RNNOISE_DIR}/src/rnn.c
+    ${RNNOISE_DIR}/src/nnet.c
+    ${RNNOISE_DIR}/src/nnet_default.c
+    ${RNNOISE_DIR}/src/rnnoise_data.c
+    ${RNNOISE_DIR}/src/rnnoise_tables.c
+    ${RNNOISE_DIR}/src/parse_lpcnet_weights.c
+)
+if(CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64|AMD64|i[3-6]86")
+    list(APPEND RNNOISE_SOURCES
+        ${RNNOISE_DIR}/src/x86/x86cpu.c
+        ${RNNOISE_DIR}/src/x86/x86_dnn_map.c
+        ${RNNOISE_DIR}/src/x86/nnet_sse4_1.c
+        ${RNNOISE_DIR}/src/x86/nnet_avx2.c
+    )
+endif()
+
+# Suppress warnings and set include paths for bundled C code
+set_source_files_properties(${RNNOISE_SOURCES} PROPERTIES
+    INCLUDE_DIRECTORIES "${RNNOISE_DIR}/include;${RNNOISE_DIR}/src;${RNNOISE_DIR}/src/x86"
+)
+# x86 RTCD (runtime CPU detection) + per-file SIMD flags
+if(CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64|AMD64|i[3-6]86")
+    set_source_files_properties(${RNNOISE_SOURCES} PROPERTIES
+        COMPILE_FLAGS "-w -DRNN_ENABLE_X86_RTCD=1 -DCPU_INFO_BY_C=1"
+    )
+    set_source_files_properties(${RNNOISE_DIR}/src/x86/nnet_sse4_1.c PROPERTIES
+        COMPILE_FLAGS "-w -DRNN_ENABLE_X86_RTCD=1 -DCPU_INFO_BY_C=1 -msse4.1"
+    )
+    set_source_files_properties(${RNNOISE_DIR}/src/x86/nnet_avx2.c PROPERTIES
+        COMPILE_FLAGS "-w -DRNN_ENABLE_X86_RTCD=1 -DCPU_INFO_BY_C=1 -mavx -mfma -mavx2"
+    )
+else()
+    set_source_files_properties(${RNNOISE_SOURCES} PROPERTIES
+        COMPILE_FLAGS "-w"
+    )
+endif()
+
 qt_add_resources(RESOURCES resources.qrc)
 
-add_executable(AetherSDR ${ALL_SOURCES} ${RESOURCES})
+add_executable(AetherSDR ${ALL_SOURCES} ${RNNOISE_SOURCES} ${RESOURCES})
 
 # macOS app bundle
 if(APPLE)
@@ -140,6 +185,8 @@ endif()
 
 target_include_directories(AetherSDR PRIVATE
     src/
+    ${RNNOISE_DIR}/include
+    ${RNNOISE_DIR}/src
 )
 
 target_link_libraries(AetherSDR PRIVATE

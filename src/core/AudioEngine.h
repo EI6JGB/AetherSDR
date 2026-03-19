@@ -17,6 +17,7 @@
 namespace AetherSDR {
 
 class SpectralNR;
+class RNNoiseFilter;
 
 // AudioEngine handles audio playback (RX) and capture (TX).
 //
@@ -63,6 +64,10 @@ public:
     void setNr2Enabled(bool on);
     bool nr2Enabled() const { return m_nr2Enabled; }
 
+    // Client-side RN2 (RNNoise neural noise suppression)
+    void setRn2Enabled(bool on);
+    bool rn2Enabled() const { return m_rn2Enabled; }
+
     // Ensure FFTW wisdom is loaded/generated. Returns true if wisdom
     // needs to be generated (slow). Call generateWisdom() in that case.
     static bool needsWisdomGeneration();
@@ -84,6 +89,7 @@ signals:
     void rxStopped();
     void levelChanged(float rms);  // audio level for VU meter, 0.0–1.0
     void nr2EnabledChanged(bool on);
+    void rn2EnabledChanged(bool on);
 
 private slots:
     void onTxAudioReady();
@@ -115,9 +121,13 @@ private:
     bool  m_resampleTo48k{false};      // RX: upsample 24kHz → 48kHz output
     bool  m_txDownsampleFrom48k{false}; // TX: downsample 48kHz → 24kHz input
 
-    // Client-side NR2
+    // Client-side NR2 (spectral)
     std::unique_ptr<SpectralNR> m_nr2;
     bool m_nr2Enabled{false};
+
+    // Client-side RN2 (RNNoise)
+    std::unique_ptr<RNNoiseFilter> m_rn2;
+    bool m_rn2Enabled{false};
 
     // Pre-allocated NR2 work buffers (avoid per-call heap allocation)
     std::vector<int16_t> m_nr2Mono;

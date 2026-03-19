@@ -702,8 +702,35 @@ void RxApplet::buildUI()
             connect(m_nrsBtn, &QPushButton::toggled, this, [this](bool on) {
                 if (m_slice) m_slice->setNrs(on);
             });
-            connect(m_rnnBtn, &QPushButton::toggled, this, [this](bool on) {
-                if (m_slice) m_slice->setRnn(on);
+
+            // RNN button: 3-state cycle (Off → RNN radio → RN2 client → Off)
+            m_rnnBtn->setCheckable(false);
+            connect(m_rnnBtn, &QPushButton::clicked, this, [this]() {
+                if (!m_slice) return;
+                if (m_rnnState == 0) {
+                    // Off → RNN on (radio-side)
+                    m_rnnState = 1;
+                    m_slice->setRnn(true);
+                    m_rnnBtn->setText("RNN");
+                    m_rnnBtn->setStyleSheet(QString(kButtonBase) + kGreenActive
+                        + "QPushButton { background: #1a6030; color: #ffffff;"
+                        " border: 1px solid #20a040; }");
+                } else if (m_rnnState == 1) {
+                    // RNN on → disable RNN, enable RN2
+                    m_rnnState = 2;
+                    m_slice->setRnn(false);
+                    m_rnnBtn->setText("RN2");
+                    m_rnnBtn->setStyleSheet(QString(kButtonBase) + kGreenActive
+                        + "QPushButton { background: #1a6030; color: #ffffff;"
+                        " border: 1px solid #20a040; }");
+                    emit rn2CycleToggled(true);
+                } else {
+                    // RN2 on → Off
+                    m_rnnState = 0;
+                    m_rnnBtn->setText("RNN");
+                    m_rnnBtn->setStyleSheet(QString(kButtonBase) + kGreenActive);
+                    emit rn2CycleToggled(false);
+                }
             });
 
             row->addWidget(m_nrlBtn);
@@ -1008,6 +1035,29 @@ void RxApplet::syncNrButton(bool nrOn)
     // If m_nrState == 2 (NR2), don't change — NR2 is client-side
 }
 
+// ─── RNN button 3-state sync ─────────────────────────────────────────────────
+
+void RxApplet::syncRnnButton(bool rnnOn)
+{
+    static const QString kOn =
+        "QPushButton { background: #1a6030; color: #ffffff;"
+        " border: 1px solid #20a040; border-radius: 2px;"
+        " font-size: 10px; font-weight: bold; padding: 1px 4px; }";
+    static const QString kOff = QString(kButtonBase) + kGreenActive;
+
+    if (rnnOn) {
+        m_rnnState = 1;
+        m_rnnBtn->setText("RNN");
+        m_rnnBtn->setStyleSheet(kOn);
+    } else if (m_rnnState == 1) {
+        // RNN turned off externally — go to off
+        m_rnnState = 0;
+        m_rnnBtn->setText("RNN");
+        m_rnnBtn->setStyleSheet(kOff);
+    }
+    // If m_rnnState == 2 (RN2), don't change — RN2 is client-side
+}
+
 void RxApplet::setNrState(int state)
 {
     static const QString kOn =
@@ -1267,14 +1317,15 @@ void RxApplet::connectSlice(SliceModel* s)
 
     // DSP toggles row 2 & 3
     {
-        QSignalBlocker b1(m_nrlBtn), b2(m_nrsBtn), b3(m_rnnBtn),
+        QSignalBlocker b1(m_nrlBtn), b2(m_nrsBtn),
                        b4(m_nrfBtn), b5(m_anflBtn), b6(m_anftBtn);
         m_nrlBtn->setChecked(s->nrlOn());
         m_nrsBtn->setChecked(s->nrsOn());
-        m_rnnBtn->setChecked(s->rnnOn());
         m_nrfBtn->setChecked(s->nrfOn());
         m_anflBtn->setChecked(s->anflOn());
         m_anftBtn->setChecked(s->anftOn());
+        // Sync RNN visual state (non-checkable 3-state button)
+        syncRnnButton(s->rnnOn());
     }
     connect(s, &SliceModel::nrlChanged, this, [this](bool on) {
         QSignalBlocker b(m_nrlBtn); m_nrlBtn->setChecked(on);
@@ -1283,7 +1334,7 @@ void RxApplet::connectSlice(SliceModel* s)
         QSignalBlocker b(m_nrsBtn); m_nrsBtn->setChecked(on);
     });
     connect(s, &SliceModel::rnnChanged, this, [this](bool on) {
-        QSignalBlocker b(m_rnnBtn); m_rnnBtn->setChecked(on);
+        syncRnnButton(on);
     });
     connect(s, &SliceModel::nrfChanged, this, [this](bool on) {
         QSignalBlocker b(m_nrfBtn); m_nrfBtn->setChecked(on);
