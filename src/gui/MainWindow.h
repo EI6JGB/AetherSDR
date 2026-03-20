@@ -26,8 +26,12 @@ class AppletPanel;
 #ifdef HAVE_RADE
 class RADEEngine;
 #endif
-#ifdef Q_OS_MAC
+#if defined(Q_OS_MAC)
 class VirtualAudioBridge;
+using DaxBridge = VirtualAudioBridge;
+#elif defined(HAVE_PIPEWIRE)
+class PipeWireAudioBridge;
+using DaxBridge = PipeWireAudioBridge;
 #endif
 class MainWindow : public QMainWindow {
     Q_OBJECT
@@ -121,8 +125,8 @@ private:
     void deactivateRADE();
 #endif
 
-#ifdef Q_OS_MAC
-    VirtualAudioBridge* m_daxBridge{nullptr};
+#if defined(Q_OS_MAC) || defined(HAVE_PIPEWIRE)
+    DaxBridge* m_daxBridge{nullptr};
     QString m_savedMicSelection;  // restore on stopDax
     void startDax();
     void stopDax();

@@ -37,6 +37,8 @@ public:
     void setTcpEnabled(bool on);
     void setPtyEnabled(bool on);
     void setDaxEnabled(bool on);
+    void setDaxRxLevel(int channel, float rms);
+    void setDaxTxLevel(float rms);
 
 signals:
     void daxToggled(bool on);

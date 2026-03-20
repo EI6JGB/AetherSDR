@@ -120,6 +120,10 @@ set(CORE_SOURCES
 
 if(APPLE)
     list(APPEND CORE_SOURCES src/core/VirtualAudioBridge.cpp)
+elseif(UNIX)
+    # Linux DAX uses PulseAudio pipe modules via pactl (works with PipeWire too)
+    list(APPEND CORE_SOURCES src/core/PipeWireAudioBridge.cpp)
+    set(HAVE_PIPEWIRE TRUE)
 endif()
 
 set(MODEL_SOURCES
@@ -302,6 +306,11 @@ if(RADE_FOUND)
     target_compile_definitions(AetherSDR PRIVATE HAVE_RADE)
     target_include_directories(AetherSDR PRIVATE ${RADE_DIR}/src)
     target_link_libraries(AetherSDR PRIVATE opus m)
+endif()
+
+if(HAVE_PIPEWIRE)
+    target_compile_definitions(AetherSDR PRIVATE HAVE_PIPEWIRE)
+    message(STATUS "Linux DAX bridge enabled (PulseAudio pipe modules)")
 endif()
 
 # Pass project version to code

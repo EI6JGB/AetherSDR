@@ -46,9 +46,11 @@
 #ifdef HAVE_RADE
 #include "core/RADEEngine.h"
 #endif
-#ifdef Q_OS_MAC
+#if defined(Q_OS_MAC)
 #include "core/VirtualAudioBridge.h"
 #include <QFileInfo>
+#elif defined(HAVE_PIPEWIRE)
+#include "core/PipeWireAudioBridge.h"
 #endif
 #include <QDebug>
 
@@ -253,7 +255,7 @@ MainWindow::MainWindow(QWidget* parent)
                 m_radeEngine->resetTx();
         }
 #endif
-#ifdef Q_OS_MAC
+#if defined(Q_OS_MAC) || defined(HAVE_PIPEWIRE)
         if (m_daxBridge)
             m_daxBridge->setTransmitting(tx);
 #endif
@@ -738,7 +740,7 @@ MainWindow::MainWindow(QWidget* parent)
     m_appletPanel->catApplet()->setRigctlPtys(m_rigctlPtys, kCatChannels);
     m_appletPanel->catApplet()->setAudioEngine(&m_audio);
 
-#ifdef Q_OS_MAC
+#if defined(Q_OS_MAC) || defined(HAVE_PIPEWIRE)
     // DAX enable button in CatApplet → start/stop DAX bridge
     connect(m_appletPanel->catApplet(), &CatApplet::daxToggled,
             this, [this](bool on) {
@@ -1215,7 +1217,7 @@ void MainWindow::onConnectionStateChanged(bool connected)
         // Apply saved display settings after panadapter is created
         m_displaySettingsPushed = false;
 
-#ifdef Q_OS_MAC
+#if defined(Q_OS_MAC) || defined(HAVE_PIPEWIRE)
         // Delay DAX bridge start until RadioModel's SmartConnect sequence
         // is fully complete (streams created, UDP bound, slices discovered).
         // Auto-start DAX bridge if enabled in settings.
@@ -1234,7 +1236,7 @@ void MainWindow::onConnectionStateChanged(bool connected)
         m_connStatusLabel->setText("Disconnected");
         m_radioInfoLabel->setText("");
         m_connPanel->setStatusText("Not connected");
-#ifdef Q_OS_MAC
+#if defined(Q_OS_MAC) || defined(HAVE_PIPEWIRE)
         stopDax();
 #endif
         m_audio.stopRxStream();
@@ -1269,7 +1271,7 @@ void MainWindow::onSliceAdded(SliceModel* s)
         }
     }
 
-#ifdef Q_OS_MAC
+#if defined(Q_OS_MAC) || defined(HAVE_PIPEWIRE)
     // Update m_daxTxMode when TX slice or its mode changes.
     // Digital modes (DIGU/DIGL/RTTY) use DAX bridge; voice modes use mic.
     auto updateDaxTxMode = [this]() {
@@ -1593,18 +1595,20 @@ void MainWindow::deactivateRADE()
 }
 #endif
 
-#ifdef Q_OS_MAC
+#if defined(Q_OS_MAC) || defined(HAVE_PIPEWIRE)
 void MainWindow::startDax()
 {
     if (m_daxBridge) return;
 
+#ifdef Q_OS_MAC
     // Only start if HAL plugin is installed
     if (!QFileInfo::exists("/Library/Audio/Plug-Ins/HAL/AetherSDRDAX.driver/Contents/MacOS/AetherSDRDAX")) {
         qInfo() << "MainWindow: DAX HAL plugin not installed, skipping DAX bridge";
         return;
     }
+#endif
 
-    m_daxBridge = new VirtualAudioBridge(this);
+    m_daxBridge = new DaxBridge(this);
     if (!m_daxBridge->open()) {
         qWarning() << "MainWindow: failed to open DAX audio bridge";
         delete m_daxBridge;
@@ -1636,15 +1640,20 @@ void MainWindow::startDax()
 
     // Wire DAX RX: PanadapterStream routes registered DAX streams here
     connect(m_radioModel.panStream(), &PanadapterStream::daxAudioReady,
-            m_daxBridge, &VirtualAudioBridge::feedDaxAudio);
+            m_daxBridge, &DaxBridge::feedDaxAudio);
 
-    // Wire DAX TX: apps → HAL plugin → shm → VirtualAudioBridge → VITA-49
-    // Always forward to feedDaxTxAudio — the gate is inside AudioEngine:
+    // Wire DAX level meters
+    connect(m_daxBridge, &DaxBridge::daxRxLevel,
+            m_appletPanel->catApplet(), &CatApplet::setDaxRxLevel);
+    connect(m_daxBridge, &DaxBridge::daxTxLevel,
+            m_appletPanel->catApplet(), &CatApplet::setDaxTxLevel);
+
+    // Wire DAX TX: apps → bridge → AudioEngine → VITA-49
     // feedDaxTxAudio blocks only when mic is actively sending (voice TX),
     // preventing dual-source jitter. During RX and digital TX, DAX flows
     // freely — this keeps VARAC/WSJT-X pre-PTT audio in the radio's
     // buffer so TX starts instantly with no delay.
-    connect(m_daxBridge, &VirtualAudioBridge::txAudioReady,
+    connect(m_daxBridge, &DaxBridge::txAudioReady,
             this, [this](const QByteArray& pcm) {
         if (m_audio.isRadeMode()) return;
         m_audio.feedDaxTxAudio(pcm);
@@ -1655,8 +1664,6 @@ void MainWindow::startDax()
     m_radioModel.sendCommand("transmit set mic_selection=PC");
     m_radioModel.sendCommand("transmit set dax=1");
 
-    // Don't set m_daxTxMode here — it will be set dynamically when
-    // DAX TX audio arrives, and cleared when TX shm goes inactive.
     qInfo() << "MainWindow: starting DAX audio bridge";
 }
 
@@ -1668,7 +1675,7 @@ void MainWindow::stopDax()
 
     disconnect(m_radioModel.panStream(), &PanadapterStream::daxAudioReady,
                m_daxBridge, nullptr);
-    disconnect(m_daxBridge, &VirtualAudioBridge::txAudioReady,
+    disconnect(m_daxBridge, &DaxBridge::txAudioReady,
                this, nullptr);
 
     // Restore original mic selection

@@ -1,5 +1,7 @@
 #include "CatApplet.h"
 #include "SliceColors.h"
+#include <algorithm>
+#include <cmath>
 #include "core/RigctlServer.h"
 #include "core/RigctlPty.h"
 #include "core/AudioEngine.h"
@@ -301,23 +303,23 @@ void CatApplet::setRadioModel(RadioModel* model)
             });
         });
 
-        // Wire TX state for TX status label
-        connect(model->transmitModel(), &TransmitModel::moxChanged, this, [this]() {
+        // Wire TX slice label — always show which slice has TX privileges
+        auto updateTxLabel = [this]() {
             if (!m_model) { m_daxTxStatus->setText(QStringLiteral("\u2014")); return; }
-            bool isTx = m_model->transmitModel()->isMox();
-            if (isTx) {
-                static const char letters[] = "ABCDEFGH";
-                for (auto* s : m_model->slices()) {
-                    if (s->isTxSlice()) {
-                        m_daxTxStatus->setText(QString("Slice %1").arg(letters[s->sliceId()]));
-                        return;
-                    }
+            static const char letters[] = "ABCDEFGH";
+            for (auto* s : m_model->slices()) {
+                if (s->isTxSlice()) {
+                    m_daxTxStatus->setText(QString("Slice %1").arg(letters[s->sliceId()]));
+                    return;
                 }
-                m_daxTxStatus->setText("TX");
-            } else {
-                m_daxTxStatus->setText("Ready");
             }
+            m_daxTxStatus->setText(QStringLiteral("\u2014"));
+        };
+        connect(model, &RadioModel::sliceAdded, this, [this, updateTxLabel](SliceModel* s) {
+            connect(s, &SliceModel::txSliceChanged, this, updateTxLabel);
+            updateTxLabel();
         });
+        updateTxLabel();
     }
 }
 
@@ -402,6 +404,27 @@ void CatApplet::setDaxEnabled(bool on)
 {
     QSignalBlocker b(m_daxEnable);
     m_daxEnable->setChecked(on);
+}
+
+void CatApplet::setDaxRxLevel(int channel, float rms)
+{
+    if (channel < 1 || channel > kChannels) return;
+    // Exponential smoothing: fast attack (α=0.4), slow decay (α=0.08)
+    static float smoothed[kChannels]{};
+    float& s = smoothed[channel - 1];
+    float alpha = (rms > s) ? 0.4f : 0.08f;
+    s = alpha * rms + (1.0f - alpha) * s;
+    int val = static_cast<int>(std::clamp(s * 200.0f, 0.0f, 100.0f));
+    m_daxRxLevel[channel - 1]->setValue(val);
+}
+
+void CatApplet::setDaxTxLevel(float rms)
+{
+    static float smoothed = 0;
+    float alpha = (rms > smoothed) ? 0.4f : 0.08f;
+    smoothed = alpha * rms + (1.0f - alpha) * smoothed;
+    int val = static_cast<int>(std::clamp(smoothed * 200.0f, 0.0f, 100.0f));
+    m_daxTxLevel->setValue(val);
 }
 
 } // namespace AetherSDR
