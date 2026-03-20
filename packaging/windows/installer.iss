@@ -15,7 +15,7 @@ DefaultDirName={autopf}\AetherSDR
 DefaultGroupName=AetherSDR
 UninstallDisplayIcon={app}\AetherSDR.exe
 OutputBaseFilename=AetherSDR-v{#APP_VERSION}-Windows-x64-setup
-OutputDir=.
+OutputDir=..\..
 Compression=lzma2/ultra64
 SolidCompression=yes
 ArchitecturesAllowed=x64compatible
@@ -32,7 +32,7 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"
 
 [Files]
-Source: "deploy\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "..\..\deploy\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
 Name: "{group}\AetherSDR"; Filename: "{app}\AetherSDR.exe"
