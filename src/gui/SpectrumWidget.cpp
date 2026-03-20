@@ -281,14 +281,25 @@ void SpectrumWidget::updateWaterfallRow(const QVector<float>& binsIntensity,
     // Native waterfall tiles carry intensity values (int16/128.0f, ~96-120 on HF).
     if (binsIntensity.isEmpty() || m_waterfall.isNull()) return;
 
-    // Derive ms-per-row from consecutive tile timecodes (radio's internal clock).
-    // This is authoritative — no wall-clock measurement, no jitter.
-    if (timecode > 0 && m_wfPrevTimecode > 0 && timecode > m_wfPrevTimecode) {
-        float delta = static_cast<float>(timecode - m_wfPrevTimecode);
-        // Light smoothing to handle occasional out-of-order tiles
-        m_wfMsPerRow = 0.8f * m_wfMsPerRow + 0.2f * delta;
+    // Derive ms-per-row by combining wall-clock timing with timecode deltas.
+    // Timecodes are frame counters (not ms), so we measure: wallClockDelta / timecodeDelta
+    // to get the true ms per row. This handles tile bursts correctly and gives
+    // a stable result because both numerator and denominator grow together.
+    {
+        const qint64 now = QDateTime::currentMSecsSinceEpoch();
+        if (timecode > 0 && m_wfPrevTimecode > 0 && timecode > m_wfPrevTimecode && m_wfPrevTimecodeMs > 0) {
+            const float wallDelta = static_cast<float>(now - m_wfPrevTimecodeMs);
+            const float tcDelta = static_cast<float>(timecode - m_wfPrevTimecode);
+            if (tcDelta > 0 && wallDelta > 0) {
+                const float measured = wallDelta / tcDelta;
+                m_wfMsPerRow = 0.95f * m_wfMsPerRow + 0.05f * measured;
+            }
+        }
+        if (timecode > 0) {
+            m_wfPrevTimecode = timecode;
+            m_wfPrevTimecodeMs = now;
+        }
     }
-    if (timecode > 0) m_wfPrevTimecode = timecode;
 
     // Client-side auto-black: track the noise floor from tile data and adjust
     // the black threshold to sit just above it. This replaces the radio's

@@ -291,10 +291,11 @@ private:
 
     bool     m_transmitting{false};
 
-    // Waterfall time scale: ms-per-row derived from radio tile timecodes.
-    // Updated on each native tile arrival; used by drawTimeScale.
-    float    m_wfMsPerRow{100.0f};     // authoritative ms per waterfall row
-    quint32  m_wfPrevTimecode{0};      // previous tile timecode (for delta)
+    // Waterfall time scale: ms-per-row derived from radio tile timecodes
+    // combined with wall-clock timing. Updated on each native tile arrival.
+    float    m_wfMsPerRow{100.0f};     // smoothed ms per waterfall row
+    quint32  m_wfPrevTimecode{0};      // previous tile timecode (frame counter)
+    qint64   m_wfPrevTimecodeMs{0};    // wall-clock time of previous timecode
 
 
     // Client-side row averaging (Rate slider)
