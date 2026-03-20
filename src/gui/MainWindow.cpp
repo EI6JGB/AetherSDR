@@ -715,6 +715,17 @@ MainWindow::MainWindow(QWidget* parent)
     m_appletPanel->txApplet()->setTransmitModel(m_radioModel.transmitModel());
     m_appletPanel->rxApplet()->setTransmitModel(m_radioModel.transmitModel());
 
+    // ── CW marker mode: centered vs carrier ──────────────────────────────
+    {
+        bool centered = AppSettings::instance().value("CwMarkerCentered", "True").toString() == "True";
+        spectrum()->setCwMarkerCentered(centered);
+        spectrum()->setCwPitch(m_radioModel.transmitModel()->cwPitch());
+    }
+    connect(m_radioModel.transmitModel(), &TransmitModel::phoneStateChanged,
+            this, [this]() {
+        spectrum()->setCwPitch(m_radioModel.transmitModel()->cwPitch());
+    });
+
     // ── P/CW applet: mic meters + ALC meter + model ────────────────────────
     connect(m_radioModel.meterModel(), &MeterModel::micMetersChanged,
             m_appletPanel->phoneCwApplet(), &PhoneCwApplet::updateMeters);
@@ -888,6 +899,10 @@ void MainWindow::buildMenuBar()
     connect(radioSetup, &QAction::triggered, this, [this] {
         auto* dlg = new RadioSetupDialog(&m_radioModel, &m_audio, this);
         dlg->setAttribute(Qt::WA_DeleteOnClose);
+        connect(dlg, &QDialog::finished, this, [this]() {
+            bool centered = AppSettings::instance().value("CwMarkerCentered", "True").toString() == "True";
+            spectrum()->setCwMarkerCentered(centered);
+        });
         dlg->show();
     });
 

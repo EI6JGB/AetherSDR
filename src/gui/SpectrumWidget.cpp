@@ -908,7 +908,19 @@ void SpectrumWidget::mouseDoubleClickEvent(QMouseEvent* ev)
     // Double-click in FFT or waterfall → tune to clicked frequency
     if (y < specH || y >= wfY) {
         const double startMhz = m_centerMhz - m_bandwidthMhz / 2.0;
-        const double rawMhz = startMhz + (ev->position().x() / width()) * m_bandwidthMhz;
+        double rawMhz = startMhz + (ev->position().x() / width()) * m_bandwidthMhz;
+
+        // In CW centered mode, offset so the clicked signal lands at the
+        // center of the passband (the sidetone pitch). Use the actual filter
+        // midpoint from the active overlay for accuracy.
+        if (m_cwMarkerCentered && (m_mode == "CW" || m_mode == "CWL")) {
+            const auto* ao = activeOverlay();
+            if (ao) {
+                double midHz = (ao->filterLowHz + ao->filterHighHz) / 2.0;
+                rawMhz -= midHz / 1.0e6;
+            }
+        }
+
         emit frequencyClicked(snapToStep(rawMhz, m_stepHz));
         ev->accept();
         return;
@@ -1437,10 +1449,19 @@ void SpectrumWidget::drawSliceMarkers(QPainter& p, const QRect& specRect, const 
         }
 
         // ── Center line ──────────────────────────────────────────────────
+        // In CW centered mode, draw the marker at the center of the passband
+        // instead of at the carrier frequency. This uses the actual filter
+        // midpoint so it's always correct regardless of pitch or filter width.
+        int markerX = vfoX;
+        if (m_cwMarkerCentered && so.isActive && (m_mode == "CW" || m_mode == "CWL")) {
+            double midHz = (so.filterLowHz + so.filterHighHz) / 2.0;
+            markerX = mhzToX(so.freqMhz + midHz / 1.0e6);
+        }
+
         const qreal lineW = so.isActive ? 2.0 : 1.0;
         const int lineAlpha = so.isActive ? 220 : 100;
         p.setPen(QPen(QColor(col.red(), col.green(), col.blue(), lineAlpha), lineW));
-        p.drawLine(vfoX, specRect.top(), vfoX, wfRect.bottom());
+        p.drawLine(markerX, specRect.top(), markerX, wfRect.bottom());
 
         // ── Triangle marker at top ───────────────────────────────────────
         const int triHalf = so.isActive ? 6 : 4;
@@ -1448,9 +1469,9 @@ void SpectrumWidget::drawSliceMarkers(QPainter& p, const QRect& specRect, const 
         p.setPen(Qt::NoPen);
         p.setBrush(col);
         QPolygon tri;
-        tri << QPoint(vfoX - triHalf, specRect.top())
-            << QPoint(vfoX + triHalf, specRect.top())
-            << QPoint(vfoX, specRect.top() + triH);
+        tri << QPoint(markerX - triHalf, specRect.top())
+            << QPoint(markerX + triHalf, specRect.top())
+            << QPoint(markerX, specRect.top() + triH);
         p.drawPolygon(tri);
 
         // ── Slice letter flag + TX badge (inactive slices only) ─────────
