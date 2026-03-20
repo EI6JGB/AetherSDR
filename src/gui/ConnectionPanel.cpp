@@ -292,7 +292,7 @@ void ConnectionPanel::setSmartLinkClient(SmartLinkClient* client)
             }
             if (isLan) continue;
 
-            QString display = QString("%1  %2  %3\nAvailable (remote)")
+            QString display = QString("%1  %2  %3\nAvailable (SmartLink)")
                 .arg(r.model, r.nickname, r.callsign);
             auto* item = new QListWidgetItem(display);
             item->setData(Qt::UserRole + 1, i + 1);  // 1-based WAN index
