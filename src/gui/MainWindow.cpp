@@ -253,10 +253,10 @@ MainWindow::MainWindow(QWidget* parent)
         // Update TX status bar indicator
         if (tx) {
             m_txIndicator->setText("TX");
-            m_txIndicator->setStyleSheet("QLabel { color: #e04040; font-weight: bold; }");
+            m_txIndicator->setStyleSheet("QLabel { color: #e04040; font-weight: bold; font-size: 21px; }");
         } else {
             m_txIndicator->setText("TX");
-            m_txIndicator->setStyleSheet("QLabel { color: #00e060; font-weight: bold; }");
+            m_txIndicator->setStyleSheet("QLabel { color: rgba(255,255,255,128); font-weight: bold; font-size: 21px; }");
         }
         // On RX resume, native tiles will restart and m_hasNativeWaterfall
         // will be set again by the first arriving tile.
@@ -724,14 +724,14 @@ MainWindow::MainWindow(QWidget* parent)
     connect(m_radioModel.tunerModel(), &TunerModel::presenceChanged,
             this, [this](bool present) {
         m_tunIndicator->setStyleSheet(present
-            ? "QLabel { color: #00e060; font-weight: bold; }"
-            : "QLabel { color: #404858; font-weight: bold; }");
+            ? "QLabel { color: #00e060; font-weight: bold; font-size: 21px; }"
+            : "QLabel { color: rgba(255,255,255,128); font-weight: bold; font-size: 21px; }");
     });
     connect(m_radioModel.tunerModel(), &TunerModel::tuningChanged,
             this, [this](bool tuning) {
         m_tunIndicator->setStyleSheet(tuning
-            ? "QLabel { color: #e0e040; font-weight: bold; }"  // yellow while tuning
-            : "QLabel { color: #00e060; font-weight: bold; }");
+            ? "QLabel { color: #e0e040; font-weight: bold; font-size: 21px; }"
+            : "QLabel { color: #00e060; font-weight: bold; font-size: 21px; }");
     });
 
     // Switch Fwd Power gauge scale based on radio max power and amplifier presence.
@@ -1320,13 +1320,13 @@ void MainWindow::buildUI()
     addSep();
 
     m_tunIndicator = new QLabel("TUN");
-    m_tunIndicator->setStyleSheet(greyInd);
+    m_tunIndicator->setStyleSheet("QLabel { color: rgba(255,255,255,128); font-weight: bold; font-size: 21px; }");
     hbox->addWidget(m_tunIndicator);
 
     addSep();
 
     m_txIndicator = new QLabel("TX");
-    m_txIndicator->setStyleSheet(greenInd);
+    m_txIndicator->setStyleSheet("QLabel { color: rgba(255,255,255,128); font-weight: bold; font-size: 21px; }");
     hbox->addWidget(m_txIndicator);
 
     addSep();
@@ -1497,8 +1497,8 @@ void MainWindow::onConnectionStateChanged(bool connected)
         m_radioVersionLabel->setText("");
         m_stationLabel->setText("");
         m_tnfIndicator->setStyleSheet("QLabel { color: #404858; font-weight: bold; font-size: 30px; }");
-        m_tunIndicator->setStyleSheet("QLabel { color: #404858; font-weight: bold; }");
-        m_txIndicator->setStyleSheet("QLabel { color: #404858; font-weight: bold; }");
+        m_tunIndicator->setStyleSheet("QLabel { color: rgba(255,255,255,128); font-weight: bold; font-size: 21px; }");
+        m_txIndicator->setStyleSheet("QLabel { color: rgba(255,255,255,128); font-weight: bold; font-size: 21px; }");
         m_txIndicator->setText("TX");
         m_connPanel->setStatusText("Not connected");
 #if defined(Q_OS_MAC) || defined(HAVE_PIPEWIRE)
