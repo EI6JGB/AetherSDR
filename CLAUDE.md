@@ -33,7 +33,7 @@ cmake --build build -j$(nproc)
 
 Dependencies (Arch): `qt6-base qt6-multimedia cmake ninja pkgconf autoconf automake libtool`
 
-Current version: **0.4.16** (set in both `CMakeLists.txt` and `README.md`).
+Current version: **0.4.17** (set in both `CMakeLists.txt` and `README.md`).
 
 ---
 
@@ -441,7 +441,7 @@ and panadapter. The radio assigns these to our `client_handle`.
 
 ---
 
-## What's Implemented (v0.4.16)
+## What's Implemented (v0.4.17)
 
 - UDP radio discovery and TCP command/control
 - SmartSDR V/H/R/S/M protocol parsing
@@ -515,6 +515,21 @@ and panadapter. The radio assigns these to our `client_handle`.
   scales TxApplet gauge, TunerApplet gauge, and SMeterWidget Power arc (#116)
 - **Windows Inno Setup installer**: proper setup.exe with Start Menu, desktop icon,
   uninstaller — alongside portable ZIP
+- **Serial port PTT/CW keying**: USB-serial adapter DTR/RTS output for PTT and
+  CW key, CTS/DSR input polling for foot switch and paddle, paddle swap, auto-open
+- **CW auto-tune**: Once and Loop buttons in VFO widget CW tab, sends
+  `slice auto_tune` for radio-side signal detection
+- **CW passband fix**: filter centered on carrier, radio BFO handles pitch offset
+- **CW decode overlay toggle**: on/off in Radio Setup → Phone/CW
+- **Opus compressed audio**: SmartLink WAN audio compression with Auto/None/Opus
+  toggle in Radio Setup → Audio, hot-swap without reconnect
+- **Per-module diagnostic logging**: Help → Support dialog with 15 toggleable
+  categories, log viewer, Send to Support button with auto-collected bundle
+- **RADE per-slice isolation**: RADE mode only affects the activated slice,
+  other slices' audio plays normally (PR #131)
+- **Network quality fix**: packet sequence tracking keyed by stream ID not PCC
+- **Memory editing**: all columns editable via double-click
+- **Audio device persistence**: output/input device selection saved across restarts
 - TX button (sends `xmit 1` / `xmit 0`)
 - Persistent window geometry and display settings
 
@@ -523,12 +538,11 @@ and panadapter. The radio assigns these to our `client_handle`.
 - RADE status indicator in VFO widget (sync/SNR display, #88)
 - RADE on Windows (#87)
 - Band stacking / band map
-- CW keyer / memories
+- CW keyer / memories (keyboard input, CWX macros, practice mode — #18)
+- DAX IQ streaming for SDR apps (#124)
 - DAX on Windows (virtual audio devices, #87)
 - Spot / DX cluster integration
-- Memory channels
 - Macro / voice keyer
-- SmartLink Opus audio compression for low-bandwidth WAN
 - SmartLink NAT hole-punching (for radios without UPnP/port forwarding)
 - SmartLink WAN auto-reconnect
 - SmartLink jitter buffer for high-latency connections
