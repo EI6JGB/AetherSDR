@@ -1193,99 +1193,99 @@ void MainWindow::buildUI()
     const QString greenInd  = "QLabel { color: #00e060; font-weight: bold; font-size: 21px; }";
     const QString redInd    = "QLabel { color: #e04040; font-weight: bold; font-size: 21px; }";
 
+    // Use a container with HBoxLayout for 3-section layout:
+    // [left items] → stretch → [STATION centered] → stretch → [right items]
+    auto* container = new QWidget(this);
+    auto* hbox = new QHBoxLayout(container);
+    hbox->setContentsMargins(6, 0, 6, 0);
+    hbox->setSpacing(6);
+
     auto addSep = [&]() {
-        auto* sep = new QLabel(" · ", this);
+        auto* sep = new QLabel(" · ");
         sep->setStyleSheet(sepStyle);
-        statusBar()->addWidget(sep);
+        hbox->addWidget(sep);
     };
 
     // Hidden connection state label (used by connect/disconnect logic)
-    m_connStatusLabel = new QLabel("", this);
+    m_connStatusLabel = new QLabel("");
     m_connStatusLabel->hide();
-    statusBar()->addWidget(m_connStatusLabel);
 
-    // Feature indicators: TNF CWX DVK FDX
-    m_tnfIndicator = new QLabel("TNF", this);
+    // ── Left section ─────────────────────────────────────────────────────
+    m_tnfIndicator = new QLabel("TNF");
     m_tnfIndicator->setStyleSheet(greyInd);
-    statusBar()->addWidget(m_tnfIndicator);
+    hbox->addWidget(m_tnfIndicator);
 
-    m_cwxIndicator = new QLabel("CWX", this);
+    m_cwxIndicator = new QLabel("CWX");
     m_cwxIndicator->setStyleSheet(greyInd);
-    statusBar()->addWidget(m_cwxIndicator);
+    hbox->addWidget(m_cwxIndicator);
 
-    m_dvkIndicator = new QLabel("DVK", this);
+    m_dvkIndicator = new QLabel("DVK");
     m_dvkIndicator->setStyleSheet(greyInd);
-    statusBar()->addWidget(m_dvkIndicator);
+    hbox->addWidget(m_dvkIndicator);
 
-    m_fdxIndicator = new QLabel("FDX", this);
+    m_fdxIndicator = new QLabel("FDX");
     m_fdxIndicator->setStyleSheet(greyInd);
-    statusBar()->addWidget(m_fdxIndicator);
+    hbox->addWidget(m_fdxIndicator);
 
     addSep();
 
-    // Radio model + firmware
-    m_radioInfoLabel = new QLabel("", this);
+    m_radioInfoLabel = new QLabel("");
     m_radioInfoLabel->setStyleSheet(valStyle);
-    statusBar()->addWidget(m_radioInfoLabel);
+    hbox->addWidget(m_radioInfoLabel);
 
-    addSep();
+    // ── Center stretch → STATION → stretch ───────────────────────────────
+    hbox->addStretch(1);
 
-    // Station name
-    m_stationLabel = new QLabel("", this);
+    m_stationLabel = new QLabel("");
     m_stationLabel->setStyleSheet(valStyle);
-    statusBar()->addWidget(m_stationLabel);
+    m_stationLabel->setAlignment(Qt::AlignCenter);
+    hbox->addWidget(m_stationLabel);
 
-    addSep();
+    hbox->addStretch(1);
 
-    // GPS + grid
-    m_gpsLabel = new QLabel("", this);
+    // ── Right section ────────────────────────────────────────────────────
+    m_gpsLabel = new QLabel("");
     m_gpsLabel->setStyleSheet(valStyle);
-    statusBar()->addWidget(m_gpsLabel);
+    hbox->addWidget(m_gpsLabel);
 
-    m_gridLabel = new QLabel("", this);
+    m_gridLabel = new QLabel("");
     m_gridLabel->setStyleSheet(valStyle);
-    statusBar()->addWidget(m_gridLabel);
+    hbox->addWidget(m_gridLabel);
 
     addSep();
 
-    // PA temp + voltage
-    m_paTempLabel = new QLabel("", this);
+    m_paTempLabel = new QLabel("");
     m_paTempLabel->setStyleSheet(valStyle);
-    statusBar()->addWidget(m_paTempLabel);
+    hbox->addWidget(m_paTempLabel);
 
     addSep();
 
-    // Network quality
-    m_networkLabel = new QLabel("", this);
+    m_networkLabel = new QLabel("");
     m_networkLabel->setStyleSheet(valStyle);
     m_networkLabel->setTextFormat(Qt::RichText);
     m_networkLabel->setCursor(Qt::PointingHandCursor);
     m_networkLabel->installEventFilter(this);
-    statusBar()->addWidget(m_networkLabel);
+    hbox->addWidget(m_networkLabel);
 
     addSep();
 
-    // Tuner status
-    m_tunIndicator = new QLabel("TUN", this);
+    m_tunIndicator = new QLabel("TUN");
     m_tunIndicator->setStyleSheet(greyInd);
-    statusBar()->addWidget(m_tunIndicator);
+    hbox->addWidget(m_tunIndicator);
 
     addSep();
 
-    // TX state
-    m_txIndicator = new QLabel("TX", this);
+    m_txIndicator = new QLabel("TX");
     m_txIndicator->setStyleSheet(greenInd);
-    statusBar()->addWidget(m_txIndicator);
+    hbox->addWidget(m_txIndicator);
 
-    // Spacer
-    auto* spacer = new QLabel("", this);
-    statusBar()->addWidget(spacer, 1);
+    addSep();
 
-    // Date/time (right-aligned)
-    m_gpsTimeLabel = new QLabel("", this);
+    m_gpsTimeLabel = new QLabel("");
     m_gpsTimeLabel->setStyleSheet(valStyle);
-    m_gpsTimeLabel->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
-    statusBar()->addPermanentWidget(m_gpsTimeLabel);
+    hbox->addWidget(m_gpsTimeLabel);
+
+    statusBar()->addWidget(container, 1);
 }
 
 // ─── Theme ────────────────────────────────────────────────────────────────────
