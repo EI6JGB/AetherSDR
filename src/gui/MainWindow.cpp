@@ -833,9 +833,8 @@ MainWindow::MainWindow(QWidget* parent)
 
     connect(m_radioModel.meterModel(), &MeterModel::hwTelemetryChanged,
             this, [this](float paTemp, float supplyVolts) {
-        m_paTempLabel->setText(QString("PA %1\u00B0C  |  %2 V")
-            .arg(paTemp, 0, 'f', 0)
-            .arg(supplyVolts, 0, 'f', 1));
+        m_paTempLabel->setText(QString("PA %1\u00B0C").arg(paTemp, 0, 'f', 0));
+        m_supplyVoltLabel->setText(QString("%1 V").arg(supplyVolts, 0, 'f', 1));
 
         // Update station label (nickname arrives via status after connect)
         const QString nick = m_radioModel.nickname();
@@ -1280,9 +1279,20 @@ void MainWindow::buildUI()
 
     addSep();
 
+    // PA temp (top) + supply voltage (bottom) stacked
+    auto* paStack = new QWidget;
+    auto* paVbox = new QVBoxLayout(paStack);
+    paVbox->setContentsMargins(0, 0, 0, 0);
+    paVbox->setSpacing(0);
     m_paTempLabel = new QLabel("");
-    m_paTempLabel->setStyleSheet(valStyle);
-    hbox->addWidget(m_paTempLabel);
+    m_paTempLabel->setStyleSheet("QLabel { color: #8aa8c0; font-size: 12px; }");
+    m_paTempLabel->setAlignment(Qt::AlignCenter);
+    m_supplyVoltLabel = new QLabel("");
+    m_supplyVoltLabel->setStyleSheet("QLabel { color: #607080; font-size: 12px; }");
+    m_supplyVoltLabel->setAlignment(Qt::AlignCenter);
+    paVbox->addWidget(m_paTempLabel);
+    paVbox->addWidget(m_supplyVoltLabel);
+    hbox->addWidget(paStack);
 
     addSep();
 
