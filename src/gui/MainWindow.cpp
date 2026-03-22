@@ -1777,7 +1777,19 @@ void MainWindow::wirePanadapter(PanadapterApplet* applet)
 
     // ── Click-to-tune ────────────────────────────────────────────────────
     connect(sw, &SpectrumWidget::frequencyClicked,
-            this, &MainWindow::onFrequencyChanged);
+            this, [this, applet](double mhz) {
+        // Activate this pan and find its slice to tune
+        if (m_panStack) m_panStack->setActivePan(applet->panId());
+        // Find a slice on this pan and make it active
+        for (auto* s : m_radioModel.slices()) {
+            if (s->panId() == applet->panId()) {
+                if (s->sliceId() != m_activeSliceId)
+                    setActiveSlice(s->sliceId());
+                break;
+            }
+        }
+        onFrequencyChanged(mhz);
+    });
 
     // ── +RX / +TNF buttons ───────────────────────────────────────────────
     connect(menu, &SpectrumOverlayMenu::addRxClicked,
