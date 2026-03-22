@@ -1563,6 +1563,10 @@ void MainWindow::setActiveSlice(int sliceId)
     auto* s = m_radioModel.slice(sliceId);
     if (!s) return;
 
+    // Auto-activate the panadapter that owns this slice
+    if (m_panStack && !s->panId().isEmpty())
+        m_panStack->setActivePan(s->panId());
+
     const int prevId = m_activeSliceId;
     m_activeSliceId = sliceId;
 
@@ -1691,6 +1695,10 @@ void MainWindow::wirePanadapter(PanadapterApplet* applet)
 {
     auto* sw = applet->spectrumWidget();
     auto* menu = sw->overlayMenu();
+
+    // ── Pan activation: clicking on this pan makes it active ─────────────
+    connect(applet, &PanadapterApplet::activated,
+            m_panStack, &PanadapterStack::setActivePan);
 
     // ── User drag actions from spectrum → RadioModel ──────────────────────
     connect(sw, &SpectrumWidget::bandwidthChangeRequested,

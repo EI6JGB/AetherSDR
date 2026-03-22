@@ -3,6 +3,7 @@
 
 #include <QVBoxLayout>
 #include <QHBoxLayout>
+#include <QEvent>
 #include <QLabel>
 #include <QPushButton>
 #include <QTextEdit>
@@ -51,6 +52,7 @@ PanadapterApplet::PanadapterApplet(QWidget* parent)
 
     // ── Spectrum widget (FFT + waterfall) ────────────────────────────────
     m_spectrum = new SpectrumWidget(this);
+    m_spectrum->installEventFilter(this);  // detect clicks for pan activation
     layout->addWidget(m_spectrum, 1);
 
     // ── CW decode panel (hidden by default, shown in CW mode) ─────────
@@ -150,6 +152,13 @@ void PanadapterApplet::setCwStats(float pitchHz, float speedWpm)
 void PanadapterApplet::clearCwText()
 {
     m_cwText->clear();
+}
+
+bool PanadapterApplet::eventFilter(QObject* obj, QEvent* ev)
+{
+    if (ev->type() == QEvent::MouseButtonPress)
+        emit activated(m_panId);
+    return QWidget::eventFilter(obj, ev);
 }
 
 } // namespace AetherSDR

@@ -36,6 +36,12 @@ public:
 
     QSize sizeHint() const override { return {800, 316}; }
 
+signals:
+    void activated(const QString& panId);
+
+protected:
+    bool eventFilter(QObject* obj, QEvent* ev) override;
+
 private:
     QString m_panId;
     SpectrumWidget* m_spectrum{nullptr};
