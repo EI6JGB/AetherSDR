@@ -39,8 +39,8 @@ static const QString kSliderStyle =
     "margin: -4px 0; border-radius: 5px; }";
 
 static const QString kMenuBtnNormal =
-    "QPushButton { background: rgba(255, 255, 255, 13); "
-    "border: 1px solid rgba(255, 255, 255, 13); border-radius: 2px; "
+    "QPushButton { background: rgba(20, 30, 45, 240); "
+    "border: 1px solid rgba(255, 255, 255, 40); border-radius: 2px; "
     "color: #c8d8e8; font-size: 11px; font-weight: bold; }"
     "QPushButton:hover { background: rgba(0, 112, 192, 180); "
     "border: 1px solid #0090e0; }";
@@ -97,8 +97,8 @@ SpectrumOverlayMenu::SpectrumOverlayMenu(QWidget* parent)
     m_toggleBtn = new QPushButton(this);
     m_toggleBtn->setFixedSize(BTN_W, BTN_H);
     m_toggleBtn->setStyleSheet(
-        "QPushButton { background: rgba(255, 255, 255, 13); "
-        "border: 1px solid rgba(255, 255, 255, 13); border-radius: 2px; "
+        "QPushButton { background: rgba(20, 30, 45, 240); "
+        "border: 1px solid rgba(255, 255, 255, 40); border-radius: 2px; "
         "color: #c8d8e8; font-size: 13px; font-weight: bold; }"
         "QPushButton:hover { background: rgba(0, 112, 192, 180); "
         "border: 1px solid #0090e0; }");
@@ -144,6 +144,17 @@ SpectrumOverlayMenu::SpectrumOverlayMenu(QWidget* parent)
         if (panel) panel->installEventFilter(this);
 
     updateLayout();
+}
+
+void SpectrumOverlayMenu::raiseAll()
+{
+    raise();
+    if (m_bandPanel)    m_bandPanel->raise();
+    if (m_xvtrPanel)    m_xvtrPanel->raise();
+    if (m_antPanel)     m_antPanel->raise();
+    if (m_dspPanel)     m_dspPanel->raise();
+    if (m_daxPanel)     m_daxPanel->raise();
+    if (m_displayPanel) m_displayPanel->raise();
 }
 
 // ── Band sub-panel ────────────────────────────────────────────────────────────

@@ -24,6 +24,9 @@ class SpectrumOverlayMenu : public QWidget {
 public:
     explicit SpectrumOverlayMenu(QWidget* parent = nullptr);
 
+    // Raise this widget and all floating panels above sibling widgets.
+    void raiseAll();
+
     // Set the antenna list (from RadioModel::antListChanged).
     void setAntennaList(const QStringList& ants);
 

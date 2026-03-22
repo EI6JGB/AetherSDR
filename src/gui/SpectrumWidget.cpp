@@ -73,6 +73,7 @@ VfoWidget* SpectrumWidget::addVfoWidget(int sliceId)
     m_vfoWidgets[sliceId] = w;
     w->show();
     w->raise();
+    m_overlayMenu->raiseAll();  // keep overlay + panels on top of all VFO widgets
     return w;
 }
 
@@ -88,8 +89,10 @@ void SpectrumWidget::removeVfoWidget(int sliceId)
 void SpectrumWidget::setActiveVfoWidget(int sliceId)
 {
     m_vfoWidget = m_vfoWidgets.value(sliceId, nullptr);
-    if (m_vfoWidget)
+    if (m_vfoWidget) {
         m_vfoWidget->raise();
+        m_overlayMenu->raiseAll();  // keep overlay above VFO
+    }
 }
 
 // ── Display control setters (save to AppSettings on each change) ──────────────
@@ -1159,9 +1162,11 @@ void SpectrumWidget::paintEvent(QPaintEvent*)
             w->updatePosition(vfoX, specRect.top());
         }
     }
-    // Active widget on top
-    if (m_vfoWidget)
+    // Active widget on top, but overlay stays above all
+    if (m_vfoWidget) {
         m_vfoWidget->raise();
+        m_overlayMenu->raiseAll();
+    }
 
     // ── WNB / RF Gain indicators (top-right of FFT area) ──────────────────
     if (m_wnbActive || m_rfGainValue != 0) {
