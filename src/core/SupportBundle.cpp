@@ -129,18 +129,20 @@ QString SupportBundle::createBundle(const RadioInfo& radio)
         }
     }
 
-    // 6. Create archive
+    // 6. Create archive in a dedicated support/ subdirectory
     const QString timestamp = QDateTime::currentDateTime().toString("yyyyMMdd-HHmmss");
     const QString configDir = QFileInfo(logMgr.logFilePath()).absolutePath();
+    const QString supportDir = configDir + "/support";
+    QDir().mkpath(supportDir);
 
 #ifdef _WIN32
-    const QString archivePath = configDir + "/support-bundle-" + timestamp + ".zip";
+    const QString archivePath = supportDir + "/support-bundle-" + timestamp + ".zip";
     QProcess proc;
     proc.start("powershell", {"-Command",
         QString("Compress-Archive -Path '%1/*' -DestinationPath '%2'")
             .arg(tmp, archivePath)});
 #else
-    const QString archivePath = configDir + "/support-bundle-" + timestamp + ".tar.gz";
+    const QString archivePath = supportDir + "/support-bundle-" + timestamp + ".tar.gz";
     QProcess proc;
     proc.start("tar", {"czf", archivePath, "-C", tmp, "."});
 #endif

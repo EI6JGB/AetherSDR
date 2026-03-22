@@ -1,6 +1,8 @@
 #include "SupportDialog.h"
 #include "core/LogManager.h"
 #include "core/SupportBundle.h"
+#include "models/RadioModel.h"
+#include "core/RadioConnection.h"
 
 #include <QCheckBox>
 #include <QCursor>
@@ -15,6 +17,7 @@
 #include <QPushButton>
 #include <QScrollBar>
 #include <QUrl>
+#include <QUrlQuery>
 #include <QVBoxLayout>
 
 namespace AetherSDR {
@@ -114,10 +117,68 @@ void SupportDialog::buildUI()
     connect(refreshBtn, &QPushButton::clicked, this, &SupportDialog::refreshLog);
     connect(clearBtn, &QPushButton::clicked, this, &SupportDialog::clearLog);
     connect(openBtn, &QPushButton::clicked, this, &SupportDialog::openLogFolder);
-    auto* sendBtn = new QPushButton("Send to Support");
+    auto* sendBtn = new QPushButton("File an Issue");
     sendBtn->setFixedHeight(26);
     sendBtn->setStyleSheet("QPushButton { background: #00607a; color: #e0f0ff; font-weight: bold; }");
-    connect(sendBtn, &QPushButton::clicked, this, &SupportDialog::sendToSupport);
+    connect(sendBtn, &QPushButton::clicked, this, [this]() {
+        // Create support bundle (tar.gz with logs, settings, system info)
+        SupportBundle::RadioInfo radio;
+        if (m_radioModel && m_radioModel->isConnected()) {
+            radio.model = m_radioModel->model();
+            radio.serial = m_radioModel->serial();
+            radio.firmware = m_radioModel->version();
+            radio.callsign = m_radioModel->callsign();
+            radio.ip = m_radioModel->connection()->radioAddress().toString();
+            radio.connected = true;
+        }
+        QString bundlePath = SupportBundle::createBundle(radio);
+        if (bundlePath.isEmpty()) {
+            QMessageBox::warning(this, "Error",
+                "Failed to create support bundle.");
+            return;
+        }
+
+        // Collect system info for the issue body
+        QString version = QCoreApplication::applicationVersion();
+        QString qt = qVersion();
+        QString os;
+#if defined(Q_OS_MAC)
+        os = "macOS";
+#elif defined(Q_OS_WIN)
+        os = "Windows";
+#else
+        os = "Linux";
+#endif
+        QString body = QString(
+            "### What happened?\n\n"
+            "_Describe the issue here_\n\n"
+            "### Steps to reproduce\n\n"
+            "1. \n2. \n3. \n\n"
+            "### System Info\n\n"
+            "- AetherSDR: %1\n"
+            "- Qt: %2\n"
+            "- OS: %3\n"
+            "- Build: %4\n\n"
+            "### Support Bundle\n\n"
+            "**Please drag and drop the support bundle into this issue.**\n")
+            .arg(version, qt, os, QStringLiteral(__DATE__));
+
+        QUrl url("https://github.com/ten9876/AetherSDR/issues/new");
+        QUrlQuery query;
+        query.addQueryItem("body", body);
+        query.addQueryItem("labels", "bug");
+        url.setQuery(query);
+        QDesktopServices::openUrl(url);
+
+        // Open the folder containing the bundle
+        QFileInfo fi(bundlePath);
+        QDesktopServices::openUrl(QUrl::fromLocalFile(fi.absolutePath()));
+
+        QMessageBox::information(this, "File an Issue",
+            QString("Your browser and file explorer have been opened.\n\n"
+                    "Drag and drop the support bundle into the GitHub issue:\n%1")
+                .arg(fi.fileName()));
+    });
     actionRow->addWidget(refreshBtn);
     actionRow->addWidget(clearBtn);
     actionRow->addWidget(openBtn);
@@ -127,11 +188,12 @@ void SupportDialog::buildUI()
 
     // ── Instructions ──────────────────────────────────────────────────────
     auto* instructions = new QLabel(
-        "<p style='color:#7888a0; font-size:11px;'>"
+        "<p style='color:#c8d8e8; font-size: 13px;'>"
         "To report an issue:<br>"
         "1. Enable logging for the relevant module(s) above<br>"
-        "2. Reproduce the problem<br>"
-        "3. Send the log file to <b>support@aethersdr.com</b></p>");
+        "2. <b>Restart AetherSDR</b> (logging changes take effect on next launch)<br>"
+        "3. Reproduce the problem<br>"
+        "4. Click <b>File an Issue</b> and drag your log file into the GitHub form</p>");
     instructions->setTextFormat(Qt::RichText);
     layout->addWidget(instructions);
 
