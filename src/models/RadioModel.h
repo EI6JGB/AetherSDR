@@ -79,6 +79,7 @@ public:
     QString version() const { return m_version; }
     bool isConnected() const;
     bool fullDuplexEnabled() const { return m_fullDuplex; }
+    void setFullDuplex(bool on) { m_fullDuplex = on; emit infoChanged(); }
     float paTemp()    const { return m_paTemp; }
     float txPower()   const { return m_txPower; }
     QStringList antennaList() const { return m_antList; }
