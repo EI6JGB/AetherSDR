@@ -2074,8 +2074,8 @@ void MainWindow::wirePanadapter(PanadapterApplet* applet)
     connect(&m_radioModel, &RadioModel::infoChanged, this, [this]() {
         bool fdx = m_radioModel.fullDuplexEnabled();
         m_fdxIndicator->setStyleSheet(fdx
-            ? "QLabel { color: #00b4d8; font-weight: bold; font-size: 21px; }"
-            : "QLabel { color: rgba(255,255,255,40); font-weight: bold; font-size: 21px; }");
+            ? "QLabel { color: rgba(255,255,255,128); font-weight: bold; font-size: 24px; }"
+            : "QLabel { color: #404858; font-weight: bold; font-size: 24px; }");
     });
     connect(sw, &SpectrumWidget::tnfCreateRequested,   tnf, &TnfModel::createTnf);
     connect(sw, &SpectrumWidget::tnfMoveRequested,     tnf, &TnfModel::setTnfFreq);
