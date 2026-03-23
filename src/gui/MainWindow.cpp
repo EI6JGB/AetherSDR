@@ -1658,6 +1658,11 @@ void MainWindow::onSliceAdded(SliceModel* s)
 
     wireVfoWidget(vfo, s);
 
+    // Wire active VFO signals (NR2, RN2, RADE) — these may have been
+    // missed during setActiveSlice if the VFO didn't exist yet
+    if (s->sliceId() == m_activeSliceId)
+        wireActiveVfoSignals(vfo);
+
     // Show DIV button on dual-SCU radios
     {
         const QString& model = m_radioModel.model();
@@ -2041,14 +2046,26 @@ void MainWindow::wirePanadapter(PanadapterApplet* applet)
             { QSignalBlocker sb(btn); btn->setChecked(on); }
     });
     connect(menu, &SpectrumOverlayMenu::nr2Toggled,
-            this, [sw](bool on) {
+            this, [this, sw](bool on) {
         if (auto* vfo = sw->vfoWidget())
             vfo->nr2Button()->setChecked(on);
+        if (on) {
+            m_audio.setRn2Enabled(false);
+            m_audio.setNr2Enabled(true);
+        } else {
+            m_audio.setNr2Enabled(false);
+        }
     });
     connect(menu, &SpectrumOverlayMenu::rn2Toggled,
-            this, [sw](bool on) {
+            this, [this, sw](bool on) {
         if (auto* vfo = sw->vfoWidget())
             vfo->rn2Button()->setChecked(on);
+        if (on) {
+            m_audio.setNr2Enabled(false);
+            m_audio.setRn2Enabled(true);
+        } else {
+            m_audio.setRn2Enabled(false);
+        }
     });
 }
 
