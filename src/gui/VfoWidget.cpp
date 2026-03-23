@@ -244,8 +244,8 @@ void VfoWidget::buildUI()
     m_txBadge->setFixedSize(28, 20);
     updateTxBadgeStyle(false);
     connect(m_txBadge, &QPushButton::clicked, this, [this] {
-        if (m_slice && !m_slice->isTxSlice())
-            m_slice->setTxSlice(true);
+        if (m_slice)
+            m_slice->setTxSlice(!m_slice->isTxSlice());
     });
     hdr->addWidget(m_txBadge);
 
