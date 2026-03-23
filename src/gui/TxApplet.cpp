@@ -382,7 +382,7 @@ void TxApplet::setTunerModel(TunerModel* tuner)
     if (!tuner) return;
 
     auto updateButtons = [this, tuner]() {
-        bool tgxlOperate = tuner->isPresent() && tuner->isOperate();
+        bool tgxlOperate = tuner->isPresent() && tuner->isOperate() && !tuner->isBypass();
         m_tuneBtn->setEnabled(!tgxlOperate);
         m_atuBtn->setEnabled(!tgxlOperate);
         m_memBtn->setEnabled(!tgxlOperate);
