@@ -176,6 +176,7 @@ public:
     void connectToRadio(const RadioInfo& info);
     void connectViaWan(WanConnection* wan, const QString& publicIp, quint16 udpPort);
     void disconnectFromRadio();
+    void forceDisconnect();  // Close TCP but allow auto-reconnect
     bool isWan() const { return m_wanConn != nullptr; }
     void setTransmit(bool tx);
     QString audioCompressionParam() const;        // "none" or "opus" based on settings

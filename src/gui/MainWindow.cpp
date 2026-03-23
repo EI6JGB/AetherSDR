@@ -84,6 +84,18 @@ MainWindow::MainWindow(QWidget* parent)
     connect(&m_discovery, &RadioDiscovery::radioLost,
             m_connPanel, &ConnectionPanel::onRadioLost);
 
+    // If the connected radio disappears from discovery, force-disconnect
+    // immediately rather than waiting for the TCP timeout (30-60s).
+    connect(&m_discovery, &RadioDiscovery::radioLost,
+            this, [this](const QString& serial) {
+        const QString connSerial = AppSettings::instance()
+            .value("LastConnectedRadioSerial").toString();
+        if (m_radioModel.isConnected() && serial == connSerial) {
+            qDebug() << "Connected radio lost from discovery — forcing disconnect";
+            m_radioModel.forceDisconnect();
+        }
+    });
+
     connect(m_connPanel, &ConnectionPanel::connectRequested,
             this, [this](const RadioInfo& info){
         m_connPanel->setStatusText("Connecting…");

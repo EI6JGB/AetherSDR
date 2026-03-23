@@ -135,6 +135,14 @@ void RadioModel::disconnectFromRadio()
     }
 }
 
+void RadioModel::forceDisconnect()
+{
+    // Close TCP without setting m_intentionalDisconnect — allows auto-reconnect
+    // when the radio reappears in discovery.
+    m_reconnectTimer.stop();
+    m_connection.disconnectFromRadio();
+}
+
 void RadioModel::setTransmit(bool tx)
 {
     // Immediately stop TX audio when unkeying — don't wait for radio's
