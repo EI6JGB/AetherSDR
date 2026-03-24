@@ -2550,23 +2550,13 @@ void MainWindow::wirePanadapter(PanadapterApplet* applet)
             // Recall saved band state
             double recallFreq = savedFreq.toDouble();
             QString recallMode = settings.value(pfx + "Mode", mode).toString();
-            int filterLo = settings.value(pfx + "FilterLo", "").toInt();
-            int filterHi = settings.value(pfx + "FilterHi", "").toInt();
             int step     = settings.value(pfx + "Step", "100").toInt();
 
             s->setMode(recallMode);
             onFrequencyChanged(recallFreq);
-
-            // Defer filter recall until mode change is echoed by the radio,
-            // since filter offsets are mode-dependent (LSB/USB flip sign)
-            if (filterLo != 0 || filterHi != 0) {
-                auto conn = std::make_shared<QMetaObject::Connection>();
-                *conn = connect(s, &SliceModel::modeChanged, this,
-                    [this, s, conn, filterLo, filterHi]() {
-                        disconnect(*conn);
-                        s->setFilterWidth(filterLo, filterHi);
-                    });
-            }
+            // Filter offsets: let the radio apply the correct default for
+            // the recalled mode. Recalling saved filter widths across mode
+            // changes produces wrong results (e.g. 3kHz USB filter on CW).
             if (spectrum()) spectrum()->setStepSize(step);
 
             // Radio-side DSP flags
