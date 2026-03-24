@@ -2577,6 +2577,12 @@ void MainWindow::createPansSequentially(const QString& layoutId, int total,
 
             m_panApplet = m_panStack->activeApplet();
 
+            // Set splitter orientation based on layout
+            if (layoutId == "2h")
+                m_panStack->setSplitterOrientation(Qt::Horizontal);
+            else
+                m_panStack->setSplitterOrientation(Qt::Vertical);
+
             qDebug() << "applyPanLayout: layout" << layoutId
                      << "complete, total pans:" << m_panStack->count();
         });

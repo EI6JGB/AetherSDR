@@ -40,6 +40,7 @@ public:
     PanadapterApplet* activeApplet() const;
     SpectrumWidget* activeSpectrum() const;
     void setActivePan(const QString& panId);
+    void setSplitterOrientation(Qt::Orientation o) { m_splitter->setOrientation(o); }
 
 signals:
     void activePanChanged(const QString& panId);
