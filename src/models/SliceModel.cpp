@@ -444,6 +444,22 @@ void SliceModel::applyStatus(const QMap<QString, QString>& kvs)
     if (kvs.contains("filter_lo") || kvs.contains("filter_hi")) {
         m_filterLow  = kvs.value("filter_lo",  QString::number(m_filterLow)).toInt();
         m_filterHigh = kvs.value("filter_hi", QString::number(m_filterHigh)).toInt();
+
+        // Radio sometimes sends wrong-polarity filter offsets after session
+        // restore (e.g. negative offsets for USB/DIGU). Normalize based on mode.
+        const bool isUsbFamily = (m_mode == "USB" || m_mode == "DIGU" || m_mode == "FDV");
+        const bool isLsbFamily = (m_mode == "LSB" || m_mode == "DIGL");
+        if (isUsbFamily && m_filterLow < 0 && m_filterHigh <= 0) {
+            // Flip: -2700,0 → 0,2700
+            int w = std::abs(m_filterLow);
+            m_filterLow = 0;
+            m_filterHigh = w;
+        } else if (isLsbFamily && m_filterLow >= 0 && m_filterHigh > 0) {
+            // Flip: 0,2700 → -2700,0
+            int w = m_filterHigh;
+            m_filterLow = -w;
+            m_filterHigh = 0;
+        }
         filterChanged_ = true;
     }
     if (kvs.contains("mode_list")) {
