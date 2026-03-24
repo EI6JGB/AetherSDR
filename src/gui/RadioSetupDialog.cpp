@@ -1189,19 +1189,50 @@ QWidget* RadioSetupDialog::buildRxTab()
             lbl->setWordWrap(true);
             gvb->addWidget(lbl);
 
+            // Cal Frequency row
+            auto* calRow = new QHBoxLayout;
+            calRow->setSpacing(4);
+            auto* calLbl = new QLabel("Cal Frequency (MHz):");
+            calLbl->setStyleSheet(kLabelStyle);
+            calRow->addWidget(calLbl);
+            auto* calEdit = new QLineEdit(QString::number(m_model->calFreqMhz(), 'f', 6));
+            calEdit->setStyleSheet(kEditStyle);
+            calEdit->setFixedWidth(100);
+            connect(calEdit, &QLineEdit::editingFinished, this, [this, calEdit] {
+                m_model->sendCommand(
+                    "radio set cal_freq=" + calEdit->text());
+            });
+            calRow->addWidget(calEdit);
+
+            auto* startBtn = new QPushButton("Start");
+            startBtn->setStyleSheet(kTogStyle);
+            startBtn->setFixedWidth(60);
+            connect(startBtn, &QPushButton::clicked, this, [this, calEdit] {
+                // Set cal_freq and trigger calibration
+                m_model->sendCommand(
+                    "radio set cal_freq=" + calEdit->text());
+            });
+            calRow->addWidget(startBtn);
+            calRow->addStretch(1);
+            gvb->addLayout(calRow);
+
+            // Freq Error PPB row
             auto* row = new QHBoxLayout;
             row->setSpacing(4);
-            auto* ppbLbl = new QLabel("Freq Error (ppb):");
+            auto* ppbLbl = new QLabel("Freq Offset (ppb):");
             ppbLbl->setStyleSheet(kLabelStyle);
             row->addWidget(ppbLbl);
             auto* ppbEdit = new QLineEdit(QString::number(m_model->freqErrorPpb()));
             ppbEdit->setStyleSheet(kEditStyle);
             ppbEdit->setFixedWidth(80);
             connect(ppbEdit, &QLineEdit::editingFinished, this, [this, ppbEdit] {
-                m_model->connection()->sendCommand(
+                m_model->sendCommand(
                     "radio set freq_error_ppb=" + ppbEdit->text());
             });
             row->addWidget(ppbEdit);
+            auto* ppbUnitLbl = new QLabel("ppb");
+            ppbUnitLbl->setStyleSheet(kLabelStyle);
+            row->addWidget(ppbUnitLbl);
             row->addStretch(1);
             gvb->addLayout(row);
         }

@@ -1520,6 +1520,10 @@ void RadioModel::handleRadioStatus(const QMap<QString, QString>& kvs)
         m_freqErrorPpb = kvs["freq_error_ppb"].toInt();
         changed = true;
     }
+    if (kvs.contains("cal_freq")) {
+        m_calFreqMhz = kvs["cal_freq"].toDouble();
+        changed = true;
+    }
     if (kvs.contains("low_latency_digital_modes")) {
         m_lowLatencyDigital = kvs["low_latency_digital_modes"] == "1";
         changed = true;

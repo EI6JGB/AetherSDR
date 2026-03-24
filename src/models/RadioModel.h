@@ -123,6 +123,7 @@ public:
     bool    binauralRx()   const { return m_binauralRx; }
     bool    muteLocalWhenRemote() const { return m_muteLocalWhenRemote; }
     int     freqErrorPpb() const { return m_freqErrorPpb; }
+    double  calFreqMhz() const { return m_calFreqMhz; }
 
     // Audio output
     int     lineoutGain()    const { return m_lineoutGain; }
@@ -343,6 +344,7 @@ private:
     bool        m_headphoneMute{false};
     bool        m_frontSpeakerMute{false};
     int         m_freqErrorPpb{0};
+    double      m_calFreqMhz{15.0};
     int         m_filterVoice{2};
     bool        m_filterVoiceAuto{false};
     int         m_filterCw{2};
