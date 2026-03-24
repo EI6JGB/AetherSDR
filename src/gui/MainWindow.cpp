@@ -442,8 +442,10 @@ MainWindow::MainWindow(QWidget* parent)
             connect(m_layoutRestoreTimer, &QTimer::timeout, this, [this]() {
                 const QString saved = AppSettings::instance()
                     .value("PanadapterLayout", "1").toString();
-                if (saved != "1" && m_panStack->count() > 1)
-                    m_panStack->rearrangeLayout(saved);
+                if (saved == "1") return;
+                // applyPanLayout handles both adding and removing pans
+                // to match the saved layout's expected count
+                applyPanLayout(saved);
             });
         }
         m_layoutRestoreTimer->start();  // restart on each new pan
