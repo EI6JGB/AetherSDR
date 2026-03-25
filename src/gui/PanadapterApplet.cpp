@@ -144,15 +144,19 @@ PanadapterApplet::PanadapterApplet(QWidget* parent)
     m_pitchMaxSlider->setToolTip("Decoder pitch search maximum (Hz)");
     cwBar->addWidget(m_pitchMaxSlider);
 
-    // Link sliders: maintain 100 Hz minimum gap
+    // Link sliders: maintain 100 Hz minimum gap, update tooltips
     connect(m_pitchMinSlider, &QSlider::valueChanged, this, [this](int v) {
+        m_pitchMinSlider->setToolTip(QString("%1 Hz").arg(v));
         m_pitchMaxSlider->setMinimum(v + 100);
         emit pitchRangeChanged(v, m_pitchMaxSlider->value());
     });
     connect(m_pitchMaxSlider, &QSlider::valueChanged, this, [this](int v) {
+        m_pitchMaxSlider->setToolTip(QString("%1 Hz").arg(v));
         m_pitchMinSlider->setMaximum(v - 100);
         emit pitchRangeChanged(m_pitchMinSlider->value(), v);
     });
+    m_pitchMinSlider->setToolTip(QString("%1 Hz").arg(m_pitchMinSlider->value()));
+    m_pitchMaxSlider->setToolTip(QString("%1 Hz").arg(m_pitchMaxSlider->value()));
 
     cwBar->addStretch();
 
