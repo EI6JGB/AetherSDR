@@ -76,7 +76,6 @@ PanadapterApplet::PanadapterApplet(QWidget* parent)
     m_cwStatsLabel = new QLabel;
     m_cwStatsLabel->setStyleSheet("QLabel { color: #6a8090; font-size: 10px; background: transparent; }");
     cwBar->addWidget(m_cwStatsLabel);
-    cwBar->addStretch();
 
     // Sensitivity slider — filters low-confidence decodes
     auto* sensLabel = new QLabel("Sens:");
@@ -95,6 +94,8 @@ PanadapterApplet::PanadapterApplet(QWidget* parent)
         m_cwCostThreshold = 1.0f - (v / 100.0f) * 0.9f;
     });
     cwBar->addWidget(m_cwSensSlider);
+
+    cwBar->addStretch();
 
     auto* clearBtn = new QPushButton("CLR");
     clearBtn->setStyleSheet(
