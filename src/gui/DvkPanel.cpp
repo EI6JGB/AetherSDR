@@ -5,6 +5,7 @@
 #include <QGridLayout>
 #include <QShortcut>
 #include <QPainter>
+#include <QFrame>
 
 namespace AetherSDR {
 
@@ -47,25 +48,35 @@ DvkPanel::DvkPanel(DvkModel* model, QWidget* parent)
         int id = i + 1;
         grid->setRowStretch(i, 1);
 
+        // Inset container per row
+        auto* rowFrame = new QFrame;
+        rowFrame->setStyleSheet(
+            "QFrame { background: #0f1520; border: 1px solid #203040; border-radius: 3px; }");
+        rowFrame->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+        auto* rowLayout = new QHBoxLayout(rowFrame);
+        rowLayout->setContentsMargins(3, 2, 3, 2);
+        rowLayout->setSpacing(4);
+
         auto* fkeyBtn = new QPushButton(QString("F%1").arg(id));
         fkeyBtn->setStyleSheet(kFKeyStyle);
-        fkeyBtn->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Expanding);
         fkeyBtn->setFixedWidth(30);
+        fkeyBtn->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Expanding);
         fkeyBtn->setToolTip(QString("Play recording %1 on-air (F%1)").arg(id));
-        grid->addWidget(fkeyBtn, i, 0);
+        rowLayout->addWidget(fkeyBtn);
 
         auto* nameLabel = new QLabel(QString("Recording %1").arg(id));
         nameLabel->setStyleSheet(kNameStyle);
-        nameLabel->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
-        grid->addWidget(nameLabel, i, 1);
+        rowLayout->addWidget(nameLabel, 1);
 
         auto* durLabel = new QLabel("Empty");
         durLabel->setStyleSheet(kDurStyle);
         durLabel->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
-        durLabel->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Expanding);
         durLabel->setFixedWidth(40);
-        grid->addWidget(durLabel, i, 2);
+        rowLayout->addWidget(durLabel);
 
+        grid->addWidget(rowFrame, i, 0);
+
+        m_rowFrames.append(rowFrame);
         m_fkeyBtns.append(fkeyBtn);
         m_nameLabels.append(nameLabel);
         m_durLabels.append(durLabel);
@@ -167,11 +178,11 @@ DvkPanel::DvkPanel(DvkModel* model, QWidget* parent)
 void DvkPanel::selectSlot(int id)
 {
     m_selectedSlot = id;
-    for (int i = 0; i < m_fkeyBtns.size(); ++i) {
+    for (int i = 0; i < m_rowFrames.size(); ++i) {
         bool selected = (i + 1 == id);
-        m_nameLabels[i]->setStyleSheet(selected
-            ? "QLabel { color: #00b4d8; font-size: 10px; font-weight: bold; }"
-            : kNameStyle);
+        m_rowFrames[i]->setStyleSheet(selected
+            ? "QFrame { background: #1a2a4a; border: 1px solid #00b4d8; border-radius: 3px; }"
+            : "QFrame { background: #0f1520; border: 1px solid #203040; border-radius: 3px; }");
     }
 }
 

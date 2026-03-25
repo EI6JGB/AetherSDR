@@ -20,6 +20,7 @@ private slots:
 
 private:
     DvkModel* m_model;
+    QVector<QFrame*> m_rowFrames;
     QVector<QPushButton*> m_fkeyBtns;
     QVector<QLabel*> m_nameLabels;
     QVector<QLabel*> m_durLabels;
