@@ -21,6 +21,7 @@ namespace AetherSDR {
 
 class SpectralNR;
 class RNNoiseFilter;
+class NvidiaBnrFilter;
 class Resampler;
 
 // AudioEngine handles audio playback (RX) and capture (TX).
@@ -96,6 +97,15 @@ public:
     void setRn2Enabled(bool on);
     bool rn2Enabled() const { return m_rn2Enabled; }
 
+    // Client-side BNR (NVIDIA NIM GPU noise removal)
+    void setBnrEnabled(bool on);
+    bool bnrEnabled() const { return m_bnrEnabled; }
+    void setBnrAddress(const QString& addr);
+    QString bnrAddress() const { return m_bnrAddress; }
+    void setBnrIntensity(float ratio);
+    float bnrIntensity() const;
+    bool bnrConnected() const;
+
     // Ensure FFTW wisdom is loaded/generated. Returns true if wisdom
     // needs to be generated (slow). Call generateWisdom() in that case.
     static bool needsWisdomGeneration();
@@ -118,6 +128,8 @@ signals:
     void levelChanged(float rms);  // audio level for VU meter, 0.0–1.0
     void nr2EnabledChanged(bool on);
     void rn2EnabledChanged(bool on);
+    void bnrEnabledChanged(bool on);
+    void bnrConnectionChanged(bool connected);
     void txRawPcmReady(const QByteArray& pcm);  // raw 24kHz stereo int16 PCM for RADEEngine
     void txPacketReady(const QByteArray& vitaPacket);  // VITA-49 TX packet for PanadapterStream
 
@@ -175,6 +187,14 @@ private:
     // Client-side RN2 (RNNoise)
     std::unique_ptr<RNNoiseFilter> m_rn2;
     bool m_rn2Enabled{false};
+
+    // Client-side BNR (NVIDIA NIM)
+    std::unique_ptr<NvidiaBnrFilter> m_bnr;
+    std::unique_ptr<Resampler> m_bnrUp;    // 24k→48k mono
+    std::unique_ptr<Resampler> m_bnrDown;  // 48k→24k mono
+    bool m_bnrEnabled{false};
+    QString m_bnrAddress{"localhost:8001"};
+    void processBnr(const QByteArray& stereoPcm);
 
     // Pre-allocated NR2 work buffers (avoid per-call heap allocation)
     std::vector<int16_t> m_nr2Mono;

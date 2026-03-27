@@ -102,6 +102,45 @@ else()
     endif()
 endif()
 
+# NVIDIA NIM BNR (Background Noise Removal) — GPU-accelerated neural denoising
+# Requires: grpc++, protobuf, NVIDIA RTX 4000+ GPU, Docker container
+option(ENABLE_BNR "Enable NVIDIA NIM BNR noise removal (requires grpc++)" OFF)
+if(ENABLE_BNR)
+    find_package(PkgConfig REQUIRED)
+    pkg_check_modules(GRPC REQUIRED grpc++)
+    pkg_check_modules(PROTOBUF REQUIRED protobuf)
+    find_program(PROTOC protoc REQUIRED)
+    find_program(GRPC_CPP_PLUGIN grpc_cpp_plugin REQUIRED)
+
+    # Generate C++ stubs from bnr.proto
+    set(BNR_PROTO "${CMAKE_SOURCE_DIR}/src/core/proto/bnr.proto")
+    set(BNR_GEN_DIR "${CMAKE_BINARY_DIR}/bnr_gen")
+    file(MAKE_DIRECTORY ${BNR_GEN_DIR})
+
+    set(BNR_PB_CC "${BNR_GEN_DIR}/bnr.pb.cc")
+    set(BNR_PB_H  "${BNR_GEN_DIR}/bnr.pb.h")
+    set(BNR_GRPC_CC "${BNR_GEN_DIR}/bnr.grpc.pb.cc")
+    set(BNR_GRPC_H  "${BNR_GEN_DIR}/bnr.grpc.pb.h")
+
+    add_custom_command(
+        OUTPUT ${BNR_PB_CC} ${BNR_PB_H} ${BNR_GRPC_CC} ${BNR_GRPC_H}
+        COMMAND ${PROTOC}
+            --proto_path=${CMAKE_SOURCE_DIR}/src/core/proto
+            --cpp_out=${BNR_GEN_DIR}
+            --grpc_out=${BNR_GEN_DIR}
+            --plugin=protoc-gen-grpc=${GRPC_CPP_PLUGIN}
+            ${BNR_PROTO}
+        DEPENDS ${BNR_PROTO}
+        COMMENT "Generating BNR gRPC stubs from bnr.proto"
+    )
+
+    set(BNR_SOURCES ${BNR_PB_CC} ${BNR_GRPC_CC})
+    message(STATUS "NVIDIA BNR enabled (gRPC ${GRPC_VERSION})")
+else()
+    set(BNR_SOURCES "")
+    message(STATUS "NVIDIA BNR disabled (use -DENABLE_BNR=ON to enable)")
+endif()
+
 # Sources
 set(CORE_SOURCES
     src/core/AppSettings.cpp
@@ -122,6 +161,7 @@ set(CORE_SOURCES
     src/core/RNNoiseFilter.cpp
     src/core/CwDecoder.cpp
     src/core/Resampler.cpp
+    src/core/NvidiaBnrFilter.cpp
     src/core/RADEEngine.cpp
     src/core/LogManager.cpp
     src/core/SupportBundle.cpp
@@ -269,7 +309,7 @@ endif()
 
 qt_add_resources(RESOURCES resources.qrc)
 
-add_executable(AetherSDR ${ALL_SOURCES} ${RNNOISE_SOURCES} ${GGMORSE_SOURCES} ${RADE_SOURCES} ${RESOURCES})
+add_executable(AetherSDR ${ALL_SOURCES} ${RNNOISE_SOURCES} ${GGMORSE_SOURCES} ${RADE_SOURCES} ${BNR_SOURCES} ${RESOURCES})
 
 # macOS app bundle
 if(APPLE)
@@ -336,6 +376,15 @@ if(RADE_FOUND)
     target_compile_definitions(AetherSDR PRIVATE HAVE_RADE)
     target_include_directories(AetherSDR PRIVATE ${RADE_DIR}/src)
     target_link_libraries(AetherSDR PRIVATE opus m)
+endif()
+
+if(ENABLE_BNR)
+    target_compile_definitions(AetherSDR PRIVATE HAVE_BNR)
+    target_include_directories(AetherSDR PRIVATE
+        ${BNR_GEN_DIR}
+        ${GRPC_INCLUDE_DIRS}
+        ${PROTOBUF_INCLUDE_DIRS})
+    target_link_libraries(AetherSDR PRIVATE ${GRPC_LIBRARIES} ${PROTOBUF_LIBRARIES})
 endif()
 
 if(HAVE_PIPEWIRE)
