@@ -97,6 +97,9 @@ public:
     bool    apdEnabled()        const { return m_apdEnabled; }
     bool    apdConfigurable()   const { return m_apdConfigurable; }
     bool    apdEqualizerActive()const { return m_apdEqActive; }
+    // Reset all state to defaults on disconnect — different radio models
+    // have different capabilities (APD, max power, pan count, etc.)
+    void resetState();
 
     // ── ATU getters ─────────────────────────────────────────────────────────
     bool      atuEnabled()      const { return m_atuEnabled; }

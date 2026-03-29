@@ -8,6 +8,29 @@ TransmitModel::TransmitModel(QObject* parent)
     : QObject(parent)
 {}
 
+void TransmitModel::resetState()
+{
+    m_apdEnabled = false;
+    m_apdConfigurable = false;
+    m_apdEqActive = false;
+    m_rfPower = 100;
+    m_tunePower = 10;
+    m_tune = false;
+    m_mox = false;
+    m_transmitting = false;
+    m_maxPowerLevel = 100;
+    m_atuEnabled = false;
+    m_atuStatus = ATUStatus::None;
+    m_memoriesEnabled = false;
+    m_usingMemory = false;
+    m_showTxInWaterfall = false;
+
+    emit apdStateChanged();
+    emit moxChanged(false);
+    emit tuneChanged(false);
+    emit micStateChanged();
+}
+
 // ── Status parsing ──────────────────────────────────────────────────────────
 
 void TransmitModel::applyTransmitStatus(const QMap<QString, QString>& kvs)

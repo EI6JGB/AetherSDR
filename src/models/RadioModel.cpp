@@ -808,6 +808,24 @@ void RadioModel::onDisconnected()
         emit txAudioGateChanged(false);
     }
     m_transmitModel.setTransmitting(false);
+    m_transmitModel.resetState();
+
+    // Reset radio-model-specific state — different radios have different
+    // capabilities (APD, max power, pan count, TGXL, amplifier, XVTR, etc.)
+    // Must re-derive everything from the new radio's status on next connect. (#359)
+    m_tunerModel.setHandle({});       // clear TGXL presence
+    m_xvtrList.clear();
+    m_hasAmplifier = false;
+    m_fullDuplex = false;
+    m_model.clear();
+    m_version.clear();
+    m_chassisSerial.clear();
+    m_callsign.clear();
+    m_region.clear();
+    m_rxAudioStreamId.clear();
+    m_lineoutGain = 50;
+    m_headphoneGain = 50;
+
     stopNetworkMonitor();
     m_panStream.stop();
     m_panStream.clearRegisteredStreams();
