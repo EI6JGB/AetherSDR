@@ -2,7 +2,7 @@
 
 #include <QByteArray>
 
-#ifdef HAVE_RADE
+#ifdef HAVE_OPUS
 struct OpusDecoder;
 struct OpusEncoder;
 #endif
@@ -17,7 +17,7 @@ namespace AetherSDR {
 // RX: Opus frame bytes → decode → stereo int16 PCM
 // TX: stereo int16 PCM → encode → Opus frame bytes
 //
-// Requires libopus (bundled via RADE build). No-op stub without HAVE_RADE.
+// Requires libopus (bundled via RADE build). No-op stub without HAVE_OPUS.
 
 class OpusCodec {
 public:
@@ -42,7 +42,7 @@ public:
 private:
     int m_bitrate{70000};
 
-#ifdef HAVE_RADE
+#ifdef HAVE_OPUS
     OpusDecoder* m_decoder{nullptr};
     OpusEncoder* m_encoder{nullptr};
     static constexpr int SAMPLE_RATE = 24000;

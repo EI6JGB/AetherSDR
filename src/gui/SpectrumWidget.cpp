@@ -10,6 +10,17 @@
 #include <QWheelEvent>
 #include <QMenu>
 #include <QToolTip>
+#include <QDialog>
+#include <QFormLayout>
+#include <QLineEdit>
+#include <QComboBox>
+#include <QCheckBox>
+#include <QDialogButtonBox>
+#include <QLabel>
+#include <QApplication>
+#include <QClipboard>
+#include <QDesktopServices>
+#include <QUrl>
 #include "core/AppSettings.h"
 #include "models/BandPlan.h"
 #include "models/BandDefs.h"
@@ -684,8 +695,40 @@ void SpectrumWidget::mousePressEvent(QMouseEvent* ev)
         const double freqMhz = xToMhz(mx);
         const int hitTnf = tnfAtPixel(mx);
 
+        // Check if right-click is on an existing spot label
+        int hitSpotIdx = -1;
+        QString hitSpotCall;
+        double hitSpotFreq = 0;
+        for (const auto& hr : m_spotClickRects) {
+            if (hr.rect.contains(mx, static_cast<int>(ev->position().y()))) {
+                if (hr.markerIndex >= 0 && hr.markerIndex < m_spotMarkers.size()) {
+                    const auto& sm = m_spotMarkers[hr.markerIndex];
+                    hitSpotIdx = sm.index;
+                    hitSpotCall = sm.callsign;
+                    hitSpotFreq = sm.freqMhz;
+                }
+                break;
+            }
+        }
+
         QMenu menu(this);
-        if (hitTnf >= 0) {
+
+        // Spot-on-label context menu
+        if (hitSpotIdx >= 0) {
+            menu.addAction(QString("Tune to %1").arg(hitSpotCall), this,
+                [this, hitSpotFreq]{ emit frequencyClicked(hitSpotFreq); });
+            menu.addAction("Copy Callsign", this, [hitSpotCall]{
+                QApplication::clipboard()->setText(hitSpotCall);
+            });
+            menu.addAction("Lookup on QRZ", this, [hitSpotCall]{
+                QDesktopServices::openUrl(QUrl("https://www.qrz.com/db/" + hitSpotCall));
+            });
+            menu.addSeparator();
+            menu.addAction("Remove Spot", this,
+                [this, hitSpotIdx]{ emit spotRemoveRequested(hitSpotIdx); });
+        }
+        // TNF context menu (when clicking on a TNF marker)
+        else if (hitTnf >= 0) {
             menu.addAction("Remove TNF", this, [this, hitTnf]{ emit tnfRemoveRequested(hitTnf); });
             auto* widthMenu = menu.addMenu("Width");
             for (int w : {50, 100, 200, 500}) {
@@ -697,7 +740,6 @@ void SpectrumWidget::mousePressEvent(QMouseEvent* ev)
             depthMenu->addAction("Deep", this, [this, hitTnf]{ emit tnfDepthRequested(hitTnf, 2); });
             depthMenu->addAction("Very Deep", this, [this, hitTnf]{ emit tnfDepthRequested(hitTnf, 3); });
             menu.addSeparator();
-            // Find current permanent state
             bool isPerm = false;
             for (const auto& t : m_tnfMarkers)
                 if (t.id == hitTnf) { isPerm = t.permanent; break; }
@@ -705,8 +747,18 @@ void SpectrumWidget::mousePressEvent(QMouseEvent* ev)
                 menu.addAction("Make Temporary", this, [this, hitTnf]{ emit tnfPermanentRequested(hitTnf, false); });
             else
                 menu.addAction("Make Permanent", this, [this, hitTnf]{ emit tnfPermanentRequested(hitTnf, true); });
-        } else {
-            const QString freqStr = QString::number(freqMhz, 'f', 6);
+        }
+        // General area context menu
+        else {
+            // Snap frequency to step size for spot placement
+            double snappedMhz = freqMhz;
+            if (m_stepHz > 0) {
+                const double stepMhz = m_stepHz / 1e6;
+                snappedMhz = std::round(freqMhz / stepMhz) * stepMhz;
+            }
+            const QString freqStr = QString::number(snappedMhz, 'f', 6);
+            menu.addAction(QString("Add Spot at %1 MHz...").arg(freqStr), this,
+                [this, snappedMhz]{ showAddSpotDialog(snappedMhz); });
             menu.addAction(QString("Add TNF at %1 MHz").arg(freqStr), this,
                 [this, freqMhz]{ emit tnfCreateRequested(freqMhz); });
         }
@@ -714,7 +766,6 @@ void SpectrumWidget::mousePressEvent(QMouseEvent* ev)
         // Close Slice option (only when multiple slices exist)
         if (m_sliceOverlays.size() > 1) {
             menu.addSeparator();
-            // Find which slice the click is nearest to
             int closestSlice = -1;
             int closestDist = INT_MAX;
             for (const auto& so : m_sliceOverlays) {
@@ -1105,6 +1156,75 @@ void SpectrumWidget::mouseReleaseEvent(QMouseEvent* ev)
             }
         }
     }
+}
+
+void SpectrumWidget::showAddSpotDialog(double freqMhz)
+{
+    // Snap to step size
+    if (m_stepHz > 0) {
+        const double stepMhz = m_stepHz / 1e6;
+        freqMhz = std::round(freqMhz / stepMhz) * stepMhz;
+    }
+    auto& as = AppSettings::instance();
+    QDialog dlg(this);
+    dlg.setWindowTitle("Add Spot");
+    dlg.setStyleSheet("QDialog { background: #1a1a2e; color: #c8d8e8; }"
+                      "QLineEdit { background: #0f0f1a; color: #c8d8e8; border: 1px solid #304060; padding: 4px; }"
+                      "QComboBox { background: #0f0f1a; color: #c8d8e8; border: 1px solid #304060; padding: 4px; }"
+                      "QLabel { color: #c8d8e8; }"
+                      "QCheckBox { color: #c8d8e8; }");
+
+    auto* layout = new QFormLayout(&dlg);
+
+    auto* freqLabel = new QLabel(QString("%1 MHz").arg(freqMhz, 0, 'f', 6));
+    layout->addRow("Frequency:", freqLabel);
+
+    auto* callEdit = new QLineEdit;
+    callEdit->setPlaceholderText("Callsign (required)");
+    layout->addRow("Callsign:", callEdit);
+
+    auto* commentEdit = new QLineEdit;
+    commentEdit->setPlaceholderText("Optional comment");
+    layout->addRow("Comment:", commentEdit);
+
+    auto* lifetimeCombo = new QComboBox;
+    lifetimeCombo->addItem("5 minutes", 300);
+    lifetimeCombo->addItem("15 minutes", 900);
+    lifetimeCombo->addItem("30 minutes", 1800);
+    lifetimeCombo->addItem("1 hour", 3600);
+    lifetimeCombo->addItem("2 hours", 7200);
+    int defaultLifetime = as.value("ManualSpotLifetime", 1800).toInt();
+    for (int i = 0; i < lifetimeCombo->count(); ++i) {
+        if (lifetimeCombo->itemData(i).toInt() == defaultLifetime) {
+            lifetimeCombo->setCurrentIndex(i);
+            break;
+        }
+    }
+    layout->addRow("Lifetime:", lifetimeCombo);
+
+    auto* forwardCheck = new QCheckBox("Forward to DX Cluster");
+    forwardCheck->setChecked(as.value("SpotForwardToCluster", "False").toString() == "True");
+    layout->addRow("", forwardCheck);
+
+    auto* buttons = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel);
+    layout->addRow(buttons);
+    connect(buttons, &QDialogButtonBox::accepted, &dlg, &QDialog::accept);
+    connect(buttons, &QDialogButtonBox::rejected, &dlg, &QDialog::reject);
+
+    if (dlg.exec() != QDialog::Accepted) return;
+
+    const QString callsign = callEdit->text().trimmed().toUpper();
+    if (callsign.isEmpty()) return;
+
+    const QString comment = commentEdit->text().trimmed();
+    const int lifetimeSec = lifetimeCombo->currentData().toInt();
+    const bool forward = forwardCheck->isChecked();
+
+    // Remember preferences
+    as.setValue("ManualSpotLifetime", QString::number(lifetimeSec));
+    as.setValue("SpotForwardToCluster", forward ? "True" : "False");
+
+    emit spotAddRequested(freqMhz, callsign, comment, lifetimeSec, forward);
 }
 
 void SpectrumWidget::mouseDoubleClickEvent(QMouseEvent* ev)

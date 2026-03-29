@@ -108,6 +108,49 @@ else()
     endif()
 endif()
 
+# Opus codec — required for SmartLink compressed audio, independent of RADE.
+# When RADE is enabled, Opus comes from RADE's custom build (with FARGAN/OSCE).
+# When RADE is disabled, find system libopus.
+# Windows: run setup-opus.ps1 first to download prebuilt DLLs
+# Linux:   apt install libopus-dev
+# macOS:   brew install opus
+if(RADE_FOUND)
+    set(OPUS_FOUND TRUE)
+    message(STATUS "Opus: using RADE's bundled build")
+elseif(WIN32)
+    set(OPUS_ROOT "${CMAKE_SOURCE_DIR}/third_party/opus")
+    if(EXISTS "${OPUS_ROOT}/include/opus/opus.h")
+        set(OPUS_FOUND TRUE)
+        set(OPUS_INCLUDE_DIRS "${OPUS_ROOT}/include/opus")
+        set(OPUS_LIBRARIES "${OPUS_ROOT}/lib/opus.lib")
+        set(OPUS_DLL "${OPUS_ROOT}/bin/opus.dll")
+        message(STATUS "Opus: using prebuilt Windows library")
+    else()
+        set(OPUS_FOUND FALSE)
+        message(WARNING "Opus not found. Run setup-opus.ps1 to download it. "
+                        "SmartLink compressed audio will be unavailable.")
+    endif()
+else()
+    if(PkgConfig_FOUND)
+        pkg_check_modules(OPUS opus)
+    endif()
+    if(NOT OPUS_FOUND)
+        find_library(OPUS_LIB opus)
+        find_path(OPUS_INC opus/opus.h)
+        if(OPUS_LIB AND OPUS_INC)
+            set(OPUS_FOUND TRUE)
+            set(OPUS_LIBRARIES ${OPUS_LIB})
+            set(OPUS_INCLUDE_DIRS "${OPUS_INC}/opus")
+        endif()
+    endif()
+    if(OPUS_FOUND)
+        message(STATUS "Opus: using system libopus")
+    else()
+        message(WARNING "Opus not found — SmartLink compressed audio will be unavailable. "
+                        "Install libopus-dev (Debian/Ubuntu), opus (Arch/vcpkg), or brew install opus (macOS).")
+    endif()
+endif()
+
 # NVIDIA NIM BNR (Background Noise Removal) — GPU-accelerated neural denoising
 # Requires: grpc++, protobuf, NVIDIA RTX 4000+ GPU, Docker container
 option(ENABLE_BNR "Enable NVIDIA NIM BNR noise removal (requires grpc++)" OFF)
@@ -422,9 +465,20 @@ if(FFTW3_FOUND)
 endif()
 
 if(RADE_FOUND)
-    target_compile_definitions(AetherSDR PRIVATE HAVE_RADE)
+    target_compile_definitions(AetherSDR PRIVATE HAVE_RADE HAVE_OPUS)
     target_include_directories(AetherSDR PRIVATE ${RADE_DIR}/src)
     target_link_libraries(AetherSDR PRIVATE opus m)
+elseif(OPUS_FOUND)
+    target_compile_definitions(AetherSDR PRIVATE HAVE_OPUS)
+    target_include_directories(AetherSDR PRIVATE ${OPUS_INCLUDE_DIRS})
+    target_link_libraries(AetherSDR PRIVATE ${OPUS_LIBRARIES})
+    if(WIN32 AND OPUS_DLL)
+        add_custom_command(TARGET AetherSDR POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                "${OPUS_DLL}" "$<TARGET_FILE_DIR:AetherSDR>"
+            COMMENT "Copying opus.dll to build directory"
+        )
+    endif()
 endif()
 
 if(ENABLE_BNR)

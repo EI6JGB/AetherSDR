@@ -66,6 +66,7 @@ class RadioModel : public QObject {
 
 public:
     explicit RadioModel(QObject* parent = nullptr);
+    ~RadioModel() override;
 
     // Access the underlying connection and panadapter stream
     RadioConnection*  connection()  { return &m_connection; }

@@ -267,8 +267,10 @@ void AudioEngine::setBnrEnabled(bool on)
                 this, &AudioEngine::bnrConnectionChanged);
 
         // Resamplers: 24kHz mono ↔ 48kHz mono
-        m_bnrUp   = std::make_unique<Resampler>(24000, 48000);
-        m_bnrDown = std::make_unique<Resampler>(48000, 24000);
+        // BNR returns variable-sized chunks (up to 200ms = 9600 samples at 48kHz),
+        // so use a large maxBlockSamples to avoid r8brain buffer overflow.
+        m_bnrUp   = std::make_unique<Resampler>(24000, 48000, 16384);
+        m_bnrDown = std::make_unique<Resampler>(48000, 24000, 16384);
         m_bnrOutBuf.clear();
         m_bnrPrimed = false;
 

@@ -79,8 +79,50 @@ void AppSettings::load()
         }
     }
 
-    if (xml.hasError())
+    if (xml.hasError()) {
         qWarning() << "AppSettings: XML parse error:" << xml.errorString();
+
+        // Try to recover from backup if the main file is corrupt
+        const QString bakPath = m_filePath + ".bak";
+        if (QFile::exists(bakPath) && m_settings.size() < 10) {
+            qWarning() << "AppSettings: main file corrupt, recovering from backup";
+            file.close();
+            m_settings.clear();
+            m_stationSettings.clear();
+
+            QFile bakFile(bakPath);
+            if (bakFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
+                QXmlStreamReader bakXml(&bakFile);
+                QString bakStation;
+                while (!bakXml.atEnd()) {
+                    bakXml.readNext();
+                    if (bakXml.isStartElement()) {
+                        const QString tag = bakXml.name().toString();
+                        if (tag == "Settings") continue;
+                        if (tag == m_stationName && bakStation.isEmpty()) {
+                            bakStation = tag;
+                            continue;
+                        }
+                        const QString text = bakXml.readElementText();
+                        if (!bakStation.isEmpty())
+                            m_stationSettings.insert(tag, text);
+                        else {
+                            m_settings.insert(tag, text);
+                            if (tag == "StationName") m_stationName = text;
+                        }
+                    } else if (bakXml.isEndElement()) {
+                        if (bakXml.name().toString() == m_stationName && !bakStation.isEmpty())
+                            bakStation.clear();
+                    }
+                }
+                bakFile.close();
+                if (!bakXml.hasError())
+                    qDebug() << "AppSettings: recovered" << m_settings.size() << "settings from backup";
+                else
+                    qWarning() << "AppSettings: backup also corrupt:" << bakXml.errorString();
+            }
+        }
+    }
 
     file.close();
     qDebug() << "AppSettings: loaded" << m_settings.size() << "settings +"
@@ -91,9 +133,13 @@ void AppSettings::load()
 
 void AppSettings::save()
 {
-    QFile file(m_filePath);
+    // Atomic save: write to temp file, then rename over the original.
+    // This prevents data loss if the app crashes or is killed mid-write.
+    const QString tmpPath = m_filePath + ".tmp";
+
+    QFile file(tmpPath);
     if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
-        qWarning() << "AppSettings: cannot write" << m_filePath;
+        qWarning() << "AppSettings: cannot write" << tmpPath;
         return;
     }
 
@@ -125,6 +171,18 @@ void AppSettings::save()
     xml.writeEndElement(); // Settings
     xml.writeEndDocument();
     file.close();
+
+    // Atomic rename: on Linux/macOS this is a single inode swap.
+    // On Windows, QFile::rename fails if the target exists, so remove first.
+    if (QFile::exists(m_filePath)) {
+        // Keep a backup in case something goes wrong
+        const QString bakPath = m_filePath + ".bak";
+        QFile::remove(bakPath);
+        QFile::rename(m_filePath, bakPath);
+    }
+    if (!QFile::rename(tmpPath, m_filePath)) {
+        qWarning() << "AppSettings: atomic rename failed from" << tmpPath << "to" << m_filePath;
+    }
 }
 
 // ─── Top-level accessors ──────────────────────────────────────────────────────

@@ -115,6 +115,17 @@ RadioModel::RadioModel(QObject* parent)
 
 }
 
+RadioModel::~RadioModel()
+{
+    // Disconnect all signals from m_connection to this BEFORE member
+    // destruction. Otherwise ~RadioConnection calls disconnectFromHost()
+    // which emits disconnected(), firing slots that access already-destroyed
+    // members (XVTR map, slice models, etc.) — use-after-free under ASAN.
+    QObject::disconnect(&m_connection, nullptr, this, nullptr);
+    QObject::disconnect(&m_panStream, nullptr, this, nullptr);
+    m_connection.disconnectFromRadio();
+}
+
 bool RadioModel::isConnected() const
 {
     return m_connection.isConnected() || (m_wanConn && m_wanConn->isConnected());

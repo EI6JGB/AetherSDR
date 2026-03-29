@@ -3337,6 +3337,46 @@ void MainWindow::wirePanadapter(PanadapterApplet* applet)
         m_radioModel.sendCommand(QString("spot trigger %1").arg(spotIndex));
     });
 
+    // ── Manual spot add/remove (#36)
+    // Note: wirePanadapter() can be called multiple times for the same widget
+    // (layout changes, reconnect), so disconnect first to avoid duplicate sends.
+    disconnect(sw, &SpectrumWidget::spotAddRequested, this, nullptr);
+    disconnect(sw, &SpectrumWidget::spotRemoveRequested, this, nullptr);
+    connect(sw, &SpectrumWidget::spotAddRequested, this,
+            [this](double freqMhz, const QString& callsign, const QString& comment,
+                   int lifetimeSec, bool forwardToCluster) {
+        auto& as = AppSettings::instance();
+        QString call = QString(callsign).replace(' ', QChar(0x7f));
+        QString freq = QString::number(freqMhz, 'f', 6);
+        QString myCall = as.value("DxClusterCallsign").toString();
+        if (myCall.isEmpty()) myCall = "AetherSDR";
+        QString cmd = "spot add callsign=" + call + " rx_freq=" + freq
+                     + " tx_freq=" + freq
+                     + " source=Manual"
+                     + " spotter_callsign=" + myCall
+                     + " lifetime_seconds=" + QString::number(lifetimeSec);
+        if (!comment.isEmpty())
+            cmd += " comment=" + QString(comment).replace(' ', QChar(0x7f));
+        QString spotColor = as.value("ManualSpotColor", "#00FF00").toString();
+        if (spotColor.length() == 7) spotColor = "#FF" + spotColor.mid(1);
+        cmd += " color=" + spotColor;
+        m_radioModel.sendCommand(cmd);
+
+        // Forward to DX cluster if requested
+        if (forwardToCluster && m_dxCluster && m_dxCluster->isConnected()) {
+            QString dxCmd = QString("DX %1 %2 %3")
+                .arg(freqMhz * 1000.0, 0, 'f', 1)
+                .arg(callsign)
+                .arg(comment);
+            QMetaObject::invokeMethod(m_dxCluster, [this, dxCmd] {
+                m_dxCluster->sendCommand(dxCmd);
+            });
+        }
+    });
+    connect(sw, &SpectrumWidget::spotRemoveRequested, this, [this](int spotIndex) {
+        m_radioModel.sendCommand(QString("spot remove %1").arg(spotIndex));
+    });
+
     // ── +RX / +TNF buttons ───────────────────────────────────────────────
     connect(menu, &SpectrumOverlayMenu::addRxClicked,
             this, [this](const QString& panId) {

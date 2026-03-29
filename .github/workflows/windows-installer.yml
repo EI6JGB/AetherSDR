@@ -30,6 +30,9 @@ jobs:
       - name: Install Ninja and Inno Setup
         run: choco install ninja innosetup -y
 
+      - name: Setup Opus (SmartLink audio codec)
+        run: .\setup-opus.ps1
+
       - name: Configure
         run: |
           cmake -B build -G "Ninja" -DCMAKE_BUILD_TYPE=Release -DENABLE_RADE=OFF

@@ -239,6 +239,11 @@ signals:
     void tnfPermanentRequested(int id, bool permanent);
     void sliceCloseRequested(int sliceId);
     void sliceTxRequested(int sliceId);
+    // Spot signals
+    void spotAddRequested(double freqMhz, const QString& callsign,
+                          const QString& comment, int lifetimeSec,
+                          bool forwardToCluster);
+    void spotRemoveRequested(int spotIndex);
 
 protected:
     void paintEvent(QPaintEvent* event) override;
@@ -250,6 +255,7 @@ protected:
     void wheelEvent(QWheelEvent* event) override;
 
 private:
+    void showAddSpotDialog(double freqMhz);
     void drawGrid(QPainter& p, const QRect& r);
     void drawSpectrum(QPainter& p, const QRect& r);
     void drawSliceMarkers(QPainter& p, const QRect& specRect, const QRect& wfRect);
