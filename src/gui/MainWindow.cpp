@@ -1655,7 +1655,7 @@ void MainWindow::buildMenuBar()
         connect(&dlg, &DxClusterDialog::tuneRequested,
                 this, [this](double freqMhz) {
             if (auto* sl = activeSlice())
-                sl->setFrequency(freqMhz);
+                sl->tuneAndRecenter(freqMhz);
         });
         dlg.exec();
         refreshSpots();  // final refresh on close
