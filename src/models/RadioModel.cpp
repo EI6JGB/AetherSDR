@@ -933,11 +933,10 @@ void RadioModel::registerAsGuiClient(const QString& clientId)
                                 sendCmd(cmd);
                         }
 
-                        // Request a remote audio RX stream (uncompressed).
-                        // Only create remote_audio_rx if PC audio is enabled.
-                        // When disabled, audio plays through the radio's physical
-                        // outputs (line out, headphone, front speaker).
-                        if (AppSettings::instance().value("PcAudioEnabled", "True").toString() == "True") {
+                        // Always create remote_audio_rx — TCI, DAX, and PC Audio
+                        // all consume this stream. Bandwidth is negligible compared
+                        // to spectrum/waterfall data. (#1014)
+                        {
                             sendCmd(
                                 QString("stream create type=remote_audio_rx compression=%1").arg(audioCompressionParam()),
                                 [this](int code, const QString& body) {
@@ -948,8 +947,6 @@ void RadioModel::registerAsGuiClient(const QString& clientId)
                                         qCWarning(lcProtocol) << "RadioModel: stream create remote_audio_rx failed, code"
                                                    << Qt::hex << code << "body:" << body;
                                 });
-                        } else {
-                            qCDebug(lcProtocol) << "RadioModel: PC audio disabled, skipping remote_audio_rx (using radio line out)";
                         }
 
         // Request DAX TX audio stream (PC mic → radio, DAX mode)
