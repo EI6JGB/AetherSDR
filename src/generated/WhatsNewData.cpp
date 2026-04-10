@@ -6,6 +6,27 @@ namespace AetherSDR {
 
 const std::vector<ReleaseEntry>& whatsNewEntries() {
     static const std::vector<ReleaseEntry> entries = {
+        {QStringLiteral("0.8.8"), QStringLiteral("2026-04-10"), QStringLiteral("Band Stack Panel, Radio-Authoritative Bands, Cross-Platform CPU Monitor"), {
+            {ChangeCategory::Feature, QStringLiteral("Band Stack panel"), QStringLiteral("Vertical bookmark strip alongside the panadapter, toggled by 3-dot icon in status bar Click \"+\" to save current frequency, click a bookmark to recall, right-click to delete Saves/restores: frequenc...")},
+            {ChangeCategory::Feature, QStringLiteral("CPU and memory indicator"), QStringLiteral("Process CPU usage and RSS memory in the status bar Cross-platform: getrusage (Linux/macOS), GetProcessTimes (Windows) Color-coded: blue < 50%, yellow 50-79%, red 80%+")},
+            {ChangeCategory::Feature, QStringLiteral("Panadapter zoom buttons"), QStringLiteral("−/+ buttons below S/B for stepped bandwidth zoom (1.5× per click) macOS trackpad pinch-to-zoom with cursor-anchored zooming Per-radio bandwidth limits (FLEX-8600: 14 MHz, 8400: 7 MHz, others: 5.4 MHz)")},
+            {ChangeCategory::Feature, QStringLiteral("Grid lines toggle"), QStringLiteral("Show/hide grid lines via Display panel toggle Persisted per-panadapter")},
+            {ChangeCategory::Feature, QStringLiteral("AGC Threshold tooltip"), QStringLiteral("Dynamic tooltip showing current AGC threshold value on slider hover")},
+            {ChangeCategory::BugFix, QStringLiteral("Radio-authoritative band changes"), QStringLiteral("Band buttons now use `display pan set band=` — radio manages its own band stack Removed ~200 lines of client-side BandStack AppSettings save/restore Bandwidth drag no longer snaps pan center to VFO")},
+            {ChangeCategory::BugFix, QStringLiteral("FlexControl stale QSY + missing buttons"), QStringLiteral("Dial no longer jumps back to previous band after external frequency change Added ToggleAgc, VolumeUp, VolumeDown to FlexControl button actions")},
+            {ChangeCategory::BugFix, QStringLiteral("TCI PC Audio button state"), QStringLiteral("PC Audio button now reflects TCI-forced stream state Button returns to saved preference when TCI disconnects")},
+            {ChangeCategory::BugFix, QStringLiteral("TGXL connection errors"), QStringLiteral("Shows error text in Peripherals tab when TCP connection fails Pre-fills radio-discovered TGXL IP as fallback")},
+            {ChangeCategory::BugFix, QStringLiteral("Logging checkboxes not persisting"), QStringLiteral("Fixed: dots in category IDs were rejected by XML element name validator Checkboxes now initialize from saved state on dialog open Discovery, Commands, Status default to enabled")},
+            {ChangeCategory::BugFix, QStringLiteral("Mic bias/boost UI not updating"), QStringLiteral("Added missing phoneStateChanged() emit after optimistic update")},
+            {ChangeCategory::BugFix, QStringLiteral("DFNR reset button"), QStringLiteral("Wired onReset callback in both right-click popup and DSP dialog")},
+            {ChangeCategory::BugFix, QStringLiteral("Support bundle firmware version"), QStringLiteral("Reports both protocol version and firmware version")},
+            {ChangeCategory::BugFix, QStringLiteral("macOS CoreAudio crash"), QStringLiteral("Guard stop() calls against StoppedState when switching audio devices")},
+            {ChangeCategory::BugFix, QStringLiteral("GuardedSlider lock bypass"), QStringLiteral("Block mouse drag on sliders when controls are locked (was only blocking wheel)")},
+            {ChangeCategory::BugFix, QStringLiteral("VFO filter BW label for DIGU/DIGL"), QStringLiteral("Show actual bandwidth instead of upper filter edge for digital modes")},
+            {ChangeCategory::BugFix, QStringLiteral("CMake diagnostics for GPU/DFNR"), QStringLiteral("Properly disable GPU rendering when Qt6GuiPrivate not found Improved DFNR disabled message pointing to setup-deepfilter.sh")},
+            {ChangeCategory::BugFix, QStringLiteral("Windows invisible cursor"), QStringLiteral("Re-apply cursor in QRhiWidget::initialize() after HWND creation")},
+            {ChangeCategory::BugFix, QStringLiteral("Manual radio probe identity"), QStringLiteral("Read S radio status line for real model/serial/nickname on VPN connections")},
+        }},
         {QStringLiteral("0.8.7"), QStringLiteral("2026-04-09"), QStringLiteral("Removed"), {
             {ChangeCategory::Feature, QStringLiteral("Elgato Stream Deck plugin"), QStringLiteral("Native plugin for the official Elgato Stream Deck app (macOS/Windows) 43 actions: TX, bands, modes, DSP, audio, slice controls, DVK Pre-built distributable — download and double-click to install St...")},
             {ChangeCategory::Feature, QStringLiteral("Help guides"), QStringLiteral("Understanding Noise Cancellation guide (NR, NR2, RN2, NR4, DFNR, BNR comparison) Configuring Data Modes guide (CAT, TCI, DAX walkthroughs for WSJT-X, JTDX, fldigi)")},

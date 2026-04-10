@@ -3,6 +3,94 @@
 All notable changes to AetherSDR are documented in this file.
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [v0.8.8] — 2026-04-10
+
+### Band Stack Panel, Radio-Authoritative Bands, Cross-Platform CPU Monitor
+
+### New Features
+
+**Band Stack panel**
+- Vertical bookmark strip alongside the panadapter, toggled by 3-dot icon in status bar
+- Click "+" to save current frequency, click a bookmark to recall, right-click to delete
+- Saves/restores: frequency, mode, filter, RX/TX antenna, AGC, volume, NB, NR, WNB
+- Color-coded by band plan segment (CW=blue, SSB=orange, Data=red)
+- Persisted per-radio in BandStack.settings (XML, atomic save)
+- Window expands to accommodate panel without affecting waterfall
+
+**CPU and memory indicator (#1056)**
+- Process CPU usage and RSS memory in the status bar
+- Cross-platform: getrusage (Linux/macOS), GetProcessTimes (Windows)
+- Color-coded: blue < 50%, yellow 50-79%, red 80%+
+
+**Panadapter zoom buttons (#1050)**
+- −/+ buttons below S/B for stepped bandwidth zoom (1.5× per click)
+- macOS trackpad pinch-to-zoom with cursor-anchored zooming
+- Per-radio bandwidth limits (FLEX-8600: 14 MHz, 8400: 7 MHz, others: 5.4 MHz)
+
+**Grid lines toggle (#1065)**
+- Show/hide grid lines via Display panel toggle
+- Persisted per-panadapter
+
+**AGC Threshold tooltip (#1064)**
+- Dynamic tooltip showing current AGC threshold value on slider hover
+
+### Bug Fixes
+
+**Radio-authoritative band changes (#1093)**
+- Band buttons now use `display pan set band=` — radio manages its own band stack
+- Removed ~200 lines of client-side BandStack AppSettings save/restore
+- Bandwidth drag no longer snaps pan center to VFO
+
+**FlexControl stale QSY + missing buttons (#1098)**
+- Dial no longer jumps back to previous band after external frequency change
+- Added ToggleAgc, VolumeUp, VolumeDown to FlexControl button actions
+
+**TCI PC Audio button state (#1071)**
+- PC Audio button now reflects TCI-forced stream state
+- Button returns to saved preference when TCI disconnects
+
+**TGXL connection errors (#1039)**
+- Shows error text in Peripherals tab when TCP connection fails
+- Pre-fills radio-discovered TGXL IP as fallback
+
+**Logging checkboxes not persisting**
+- Fixed: dots in category IDs were rejected by XML element name validator
+- Checkboxes now initialize from saved state on dialog open
+- Discovery, Commands, Status default to enabled
+
+**Mic bias/boost UI not updating (#1045)**
+- Added missing phoneStateChanged() emit after optimistic update
+
+**DFNR reset button (#1055)**
+- Wired onReset callback in both right-click popup and DSP dialog
+
+**Support bundle firmware version (#1057)**
+- Reports both protocol version and firmware version
+
+**macOS CoreAudio crash (#1059)**
+- Guard stop() calls against StoppedState when switching audio devices
+
+**GuardedSlider lock bypass (#1060)**
+- Block mouse drag on sliders when controls are locked (was only blocking wheel)
+
+**VFO filter BW label for DIGU/DIGL (#1066)**
+- Show actual bandwidth instead of upper filter edge for digital modes
+
+**CMake diagnostics for GPU/DFNR (#1067)**
+- Properly disable GPU rendering when Qt6GuiPrivate not found
+- Improved DFNR disabled message pointing to setup-deepfilter.sh
+
+**Windows invisible cursor (#1096)**
+- Re-apply cursor in QRhiWidget::initialize() after HWND creation
+
+**Manual radio probe identity (#1072)**
+- Read S radio status line for real model/serial/nickname on VPN connections
+
+### Contributors
+
+- rfoust — Panadapter zoom buttons and pinch-to-zoom (#1108)
+- AetherClaude (pi-claude) — Multiple bug fixes and features
+
 ## [v0.8.7] — 2026-04-09
 
 ### TCI Audio Fix, Elgato Stream Deck Plugin, Help Guides
