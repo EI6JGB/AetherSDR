@@ -3048,6 +3048,23 @@ QWidget* RadioSetupDialog::buildPeripheralsTab()
             [this]() { return m_tgxl->peerPort(); });
         connect(m_tgxl, &TgxlConnection::connected, this, updateTgxl);
         connect(m_tgxl, &TgxlConnection::disconnected, this, updateTgxl);
+        // Pre-fill radio-discovered TGXL IP when no saved IP and not connected (#1039)
+        auto* tgxlIpEdit = qobject_cast<QLineEdit*>(grid->itemAtPosition(1, 1)->widget());
+        if (tgxlIpEdit && tgxlIpEdit->text().isEmpty()) {
+            QString discovered = m_model->tunerModel().tgxlIp();
+            if (!discovered.isEmpty()) {
+                tgxlIpEdit->setText(discovered);
+            }
+        }
+        // Show TCP error reason in status column (#1039)
+        auto* tgxlStatus = qobject_cast<QLabel*>(grid->itemAtPosition(1, 4)->widget());
+        if (tgxlStatus) {
+            connect(m_tgxl, &TgxlConnection::connectionFailed, this,
+                    [tgxlStatus](const QString& err) {
+                tgxlStatus->setText("Error: " + err);
+                tgxlStatus->setStyleSheet("QLabel { color: #e06060; font-size: 11px; }");
+            });
+        }
     }
 
     // Row 2: Power Genius XL (PGXL)
