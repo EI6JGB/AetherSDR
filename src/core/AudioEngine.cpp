@@ -957,7 +957,7 @@ void AudioEngine::onTxAudioReady()
 
     // RADE mode: emit raw PCM for RADEEngine instead of sending VITA-49
     if (m_radeMode) {
-        emit txRawPcmReady(data);  // data is int16 stereo 24kHz
+        emit txRawPcmReady(data);  // data is float32 stereo 24kHz
         return;
     }
 
@@ -966,24 +966,23 @@ void AudioEngine::onTxAudioReady()
     if (m_daxTxMode) return;
 
     // ── Apply client-side PC mic gain ────────────────────────────────────
-    // mic_level slider (0-100) maps to 0.0-1.0 gain on raw PCM.
-    // Applied before metering so the meter reflects the actual level sent.
+    // mic_level slider (0-100) maps to 0.0-1.0 gain on raw float32 PCM.
     const float gain = m_pcMicGain.load();
     if (gain < 0.999f) {
-        auto* pcm = reinterpret_cast<int16_t*>(data.data());
-        int sampleCount = data.size() / sizeof(int16_t);
+        auto* pcm = reinterpret_cast<float*>(data.data());
+        int sampleCount = data.size() / static_cast<int>(sizeof(float));
         for (int i = 0; i < sampleCount; ++i)
-            pcm[i] = static_cast<int16_t>(qBound(-32768, static_cast<int>(pcm[i] * gain), 32767));
+            pcm[i] *= gain;
     }
 
     // ── Client-side PC mic level metering ────────────────────────────────
     // Accumulate peak and RMS over a ~50ms window, then emit once.
     // Only used when mic_selection=PC (gated in MainWindow).
     {
-        const auto* pcm = reinterpret_cast<const int16_t*>(data.constData());
-        int sampleCount = data.size() / sizeof(int16_t);
+        const auto* pcm = reinterpret_cast<const float*>(data.constData());
+        int sampleCount = data.size() / static_cast<int>(sizeof(float));
         for (int i = 0; i < sampleCount; i += 2) {  // stereo: use L channel
-            float s = std::abs(pcm[i]) / 32768.0f;
+            float s = std::abs(pcm[i]);
             if (s > m_pcMicPeak) m_pcMicPeak = s;
             m_pcMicSumSq += static_cast<double>(s) * s;
             m_pcMicSampleCount++;
@@ -1002,8 +1001,17 @@ void AudioEngine::onTxAudioReady()
     // ── Opus TX path: always active for remote_audio_tx ────────────────
     // Sends Opus during both RX (VOX/met_in_rx metering) and TX (voice).
     // The radio requires Opus on remote_audio_tx (enforces compression=OPUS).
+    // Convert float32→int16 at the Opus boundary (libopus requires int16).
     if (m_opusTxEnabled) {
-        m_opusTxAccumulator.append(data);
+        {
+            const auto* f32 = reinterpret_cast<const float*>(data.constData());
+            const int nSamples = data.size() / static_cast<int>(sizeof(float));
+            QByteArray i16data(nSamples * static_cast<int>(sizeof(int16_t)), Qt::Uninitialized);
+            auto* i16 = reinterpret_cast<int16_t*>(i16data.data());
+            for (int i = 0; i < nSamples; ++i)
+                i16[i] = static_cast<int16_t>(std::clamp(f32[i] * 32768.0f, -32768.0f, 32767.0f));
+            m_opusTxAccumulator.append(i16data);
+        }
         // 240 stereo sample frames × 2 channels × 2 bytes = 960 bytes per 10ms frame
         constexpr int OPUS_FRAME_BYTES = 240 * 2 * sizeof(int16_t);
 
@@ -1058,25 +1066,19 @@ void AudioEngine::onTxAudioReady()
     }
 
     // ── Uncompressed TX path ─────────────────────────────────────────────
+    // Data is float32 stereo — accumulate and send as float32 VITA-49 packets.
     m_txAccumulator.append(data);
 
-    // Process complete packets (128 stereo pairs = 512 bytes of int16 PCM)
-    while (m_txAccumulator.size() >= TX_PCM_BYTES_PER_PACKET) {
-        const int16_t* pcm = reinterpret_cast<const int16_t*>(m_txAccumulator.constData());
+    // 128 stereo pairs × 2 channels × sizeof(float) = 1024 bytes per packet
+    constexpr int TX_FLOAT_BYTES_PER_PACKET = TX_SAMPLES_PER_PACKET * 2 * sizeof(float);
+    while (m_txAccumulator.size() >= TX_FLOAT_BYTES_PER_PACKET) {
+        const float* pcm = reinterpret_cast<const float*>(m_txAccumulator.constData());
 
-        // Convert int16 stereo → float32 stereo (128 pairs = 256 floats)
-        // No client-side gain — the radio handles mic level via mic_level
-        // and mic_boost settings. Sending at native level prevents clipping.
-        float floatBuf[TX_SAMPLES_PER_PACKET * 2];
-        for (int i = 0; i < TX_SAMPLES_PER_PACKET * 2; ++i)
-            floatBuf[i] = pcm[i] / 32768.0f;
-
-        // Build VITA-49 packet and send via registered UDP socket
-        QByteArray packet = buildVitaTxPacket(floatBuf, TX_SAMPLES_PER_PACKET);
+        // Already float32 — send directly
+        QByteArray packet = buildVitaTxPacket(pcm, TX_SAMPLES_PER_PACKET);
         emit txPacketReady(packet);
 
-        // Advance accumulator
-        m_txAccumulator.remove(0, TX_PCM_BYTES_PER_PACKET);
+        m_txAccumulator.remove(0, TX_FLOAT_BYTES_PER_PACKET);
     }
 }
 
