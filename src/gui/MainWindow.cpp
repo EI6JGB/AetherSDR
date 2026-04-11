@@ -1874,6 +1874,8 @@ MainWindow::MainWindow(QWidget* parent)
 
     // Restore saved geometry from XML settings
     auto& s = AppSettings::instance();
+    m_startupCenterMhz = s.value("LastFrequency", "0").toDouble();
+    m_startupCenterPending = (m_startupCenterMhz > 0.0);
     const QString geomB64 = s.value("MainWindowGeometry").toString();
     if (!geomB64.isEmpty())
         restoreGeometry(QByteArray::fromBase64(geomB64.toLatin1()));
@@ -4308,9 +4310,10 @@ void MainWindow::onSliceAdded(SliceModel* s)
     if (m_applyingLayout) return;
 
     qDebug() << "MainWindow: slice added" << s->sliceId();
+    const bool firstSlice = (m_activeSliceId < 0);
 
     // First slice — wire everything up
-    if (m_activeSliceId < 0) {
+    if (firstSlice) {
         setActiveSlice(s->sliceId());
 
         // Detect initial band from radio's frequency
@@ -4628,6 +4631,14 @@ void MainWindow::onSliceAdded(SliceModel* s)
         updateSplitState();
         // Auto-focus the TX VFO so the user can immediately tune the TX offset
         setActiveSlice(s->sliceId());
+    }
+
+    if (firstSlice && m_startupCenterPending) {
+        m_startupCenterPending = false;
+        const double startupCenter = m_startupCenterMhz;
+        QTimer::singleShot(0, this, [this, startupCenter]() {
+            centerActiveSliceInPanadapter(true, startupCenter);
+        });
     }
 }
 
