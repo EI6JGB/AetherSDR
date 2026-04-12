@@ -1,4 +1,7 @@
 #include "MainWindow.h"
+#ifdef HAVE_MQTT
+#include "MqttApplet.h"
+#endif
 #include "ConnectionPanel.h"
 #include "TitleBar.h"
 #include "PanadapterApplet.h"
@@ -401,6 +404,23 @@ MainWindow::MainWindow(QWidget* parent)
 #ifdef HAVE_WEBSOCKETS
     m_freedvClient = new FreeDvClient;
 #endif
+#ifdef HAVE_MQTT
+    m_mqttClient = new MqttClient(this);
+    m_appletPanel->mqttApplet()->setMqttClient(m_mqttClient);
+
+    connect(m_appletPanel->mqttApplet(), &MqttApplet::connectRequested,
+            this, [this](const QString& host, quint16 port,
+                         const QString& user, const QString& pass,
+                         const QStringList& topics) {
+        m_mqttClient->connectToBroker(host, port, user, pass);
+        for (const QString& t : topics) {
+            m_mqttClient->subscribe(t);
+        }
+    });
+    connect(m_appletPanel->mqttApplet(), &MqttApplet::disconnectRequested,
+            this, [this] { m_mqttClient->disconnect(); });
+#endif
+
     m_spotThread = new QThread(this);
     m_spotThread->setObjectName("SpotClients");
     m_dxCluster->moveToThread(m_spotThread);

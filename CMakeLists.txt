@@ -354,6 +354,16 @@ if(ENABLE_DFNR)
     endif()
 endif()
 
+# MQTT client support (libmosquitto) — station device integration (#699)
+pkg_check_modules(MOSQUITTO libmosquitto)
+option(ENABLE_MQTT "Enable MQTT client support" ${MOSQUITTO_FOUND})
+if(ENABLE_MQTT AND MOSQUITTO_FOUND)
+    message(STATUS "MQTT client support enabled (libmosquitto)")
+else()
+    set(ENABLE_MQTT OFF)
+    message(STATUS "MQTT client support disabled (install libmosquitto-dev to enable)")
+endif()
+
 # Sources
 set(CORE_SOURCES
     src/core/AppSettings.cpp
@@ -378,6 +388,7 @@ set(CORE_SOURCES
     src/core/RigctlServer.cpp
     src/core/TciServer.cpp
     src/core/TciProtocol.cpp
+    src/core/MqttClient.cpp
     src/core/PgxlConnection.cpp
     src/core/FirmwareUploader.cpp
     src/core/DvkWavTransfer.cpp
@@ -462,6 +473,7 @@ set(GUI_SOURCES
     src/gui/PhoneApplet.cpp
     src/gui/EqApplet.cpp
     src/gui/CatApplet.cpp
+    src/gui/MqttApplet.cpp
     src/gui/MeterSlider.cpp
     src/gui/PhaseKnob.cpp
     src/gui/AntennaGeniusApplet.cpp
@@ -861,6 +873,12 @@ if(ENABLE_DFNR)
             DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/AetherSDR"
             OPTIONAL)
     endif()
+endif()
+
+if(ENABLE_MQTT)
+    target_compile_definitions(AetherSDR PRIVATE HAVE_MQTT)
+    target_include_directories(AetherSDR PRIVATE ${MOSQUITTO_INCLUDE_DIRS})
+    target_link_libraries(AetherSDR PRIVATE ${MOSQUITTO_LIBRARIES})
 endif()
 
 if(AETHER_GPU_SPECTRUM)
