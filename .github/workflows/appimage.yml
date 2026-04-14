@@ -135,6 +135,10 @@ jobs:
           else
             export QMAKE=$(which qmake6 2>/dev/null || which qmake)
           fi
+          # Exclude OpenSSL from the AppImage — bundled Ubuntu 22.04 versions
+          # conflict with host PipeWire/GStreamer on newer distros (#1362, #1389).
+          # linuxdeploy pulls them as transitive deps of libgssapi/libsystemd.
+          export LINUXDEPLOY_EXCLUDE_LIBS="libssl.so.3:libcrypto.so.3"
           ./linuxdeploy-${{ matrix.arch }}.AppImage \
             --appdir AppDir \
             --plugin qt \
