@@ -4955,8 +4955,13 @@ void MainWindow::onConnectionStateChanged(bool connected)
         // remote_audio_rx stream for TCI clients; the sink should stay
         // silent in that case. The PC Audio toggle handler starts/stops
         // the sink when the user flips it.
-        if (AppSettings::instance().value("PcAudioEnabled", "True").toString() == "True") {
-            audioStartRx();
+        // Always sync the button to the setting here so any divergence
+        // (e.g. from a profile load before connect) is corrected (#1536).
+        {
+            const bool pcAudio = AppSettings::instance().value("PcAudioEnabled", "True").toString() == "True";
+            m_titleBar->setPcAudioEnabled(pcAudio);
+            if (pcAudio)
+                audioStartRx();
         }
         updateNr2Availability();  // Disable NR2 if connected via SmartLink/Opus (#1597)
         // TX audio stream will start when the radio assigns a stream ID
