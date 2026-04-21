@@ -2800,7 +2800,10 @@ void SpectrumWidget::pushWaterfallRow(const QVector<float>& bins, int destWidth,
 
     QVector<QRgb> scanline(destWidth, qRgb(0, 0, 0));
     for (int x = 0; x < destWidth; ++x) {
-        const int binIdx = x * bins.size() / destWidth;
+        // Pixel-center sampling — prevents half-bin offset between spectrum
+        // and waterfall that made the same frequency appear at slightly
+        // different x positions in the two panes (#1690).
+        const int binIdx = static_cast<int>((x + 0.5f) * bins.size() / destWidth);
         const float dbm = (binIdx >= 0 && binIdx < bins.size()) ? bins[binIdx] : m_wfMinDbm;
         scanline[x] = dbmToRgb(dbm);
     }
@@ -4077,7 +4080,7 @@ void SpectrumWidget::drawGrid(QPainter& p, const QRect& r)
 
 void SpectrumWidget::drawSpectrum(QPainter& p, const QRect& r)
 {
-    if (m_smoothed.isEmpty()) {
+    if (m_smoothed.size() < 2) {
         p.setPen(QColor(0x00, 0x60, 0x80));
         p.drawText(r, Qt::AlignCenter, "No panadapter data — waiting for radio stream");
         return;
@@ -4112,7 +4115,7 @@ void SpectrumWidget::drawSpectrum(QPainter& p, const QRect& r)
     for (int i = 0; i < n; ++i) {
         const float dbm  = m_smoothed[i];
         const float norm = qBound(0.0f, (m_refLevel - dbm) / m_dynamicRange, 1.0f);
-        pts[i].x = r.left() + static_cast<int>(static_cast<float>(i) / n * w);
+        pts[i].x = r.left() + static_cast<int>(static_cast<float>(i) / (n - 1) * w);
         pts[i].y = r.top()  + qMin(static_cast<int>(norm * h), h - 1);
         pts[i].t = 1.0f - norm;  // 0=noise floor, 1=strong signal
     }
